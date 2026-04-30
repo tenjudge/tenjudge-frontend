@@ -1,4 +1,21 @@
 import { createApp } from 'vue'
-import App from './App.vue'
+import { createPinia } from 'pinia'
 
-createApp(App).mount('#app')
+import App from './App.vue'
+import { router } from './router'
+import { useAuthStore } from './stores/auth'
+import './styles/index.css'
+
+const app = createApp(App)
+const pinia = createPinia()
+
+app.use(pinia)
+
+const authStore = useAuthStore(pinia)
+authStore.restoreSession()
+
+app.use(router)
+
+void router.isReady().then(() => {
+  app.mount('#app')
+})
