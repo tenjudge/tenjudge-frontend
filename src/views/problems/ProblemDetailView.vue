@@ -60,63 +60,85 @@ async function handleSubmit(language: SubmitLanguage, code: string) {
 </script>
 
 <template>
-  <section class="page" aria-labelledby="problem-detail-title">
-    <div v-if="error" class="form-error">{{ error.message }}</div>
+  <section class="page problem-detail-page" aria-labelledby="problem-detail-title">
+    <div v-if="error" class="form-error page-error">{{ error.message }}</div>
 
     <template v-if="!error">
       <header class="page-header">
-        <h1 id="problem-detail-title" class="page-title">
-          {{ problem?.name || 'Problem' }}
+        <h1 v-if="problem" id="problem-detail-title" class="page-title">
+          #{{ problem.id }}. {{ problem.name }}
         </h1>
       </header>
 
-      <div class="problem-layout">
-        <div class="problem-layout__main">
-          <div v-if="loading" class="loading-area">
-            <div class="skeleton-block" v-for="i in [1, 2, 3, 4]" :key="i">
-              <span class="skeleton-line skeleton-line--wide" />
-            </div>
+      <div class="problem-main">
+        <div v-if="loading" class="loading-area">
+          <div class="skeleton-block" v-for="i in [1, 2, 3, 4]" :key="i">
+            <span class="skeleton-line skeleton-line--wide" />
           </div>
-
-          <template v-else-if="problem">
-            <ProblemStatement
-              :statement="problem.statement"
-              :solution="problem.solution"
-            />
-
-            <CodeSubmitPanel
-              :loading="submitLoading"
-              @submit="handleSubmit"
-            />
-          </template>
         </div>
 
-        <aside v-if="problem" class="problem-layout__aside">
-          <ProblemMeta
-            :difficulty="problem.difficulty"
-            :tags="problem.tags"
-            :time-limit="problem.timeLimit"
-            :memory-limit="problem.memoryLimit"
+        <template v-else-if="problem">
+          <ProblemStatement
+            :statement="problem.statement"
+            :solution="problem.solution"
+            back-to="/problems"
+            back-label="Back to problems"
           />
-        </aside>
+
+          <CodeSubmitPanel
+            :loading="submitLoading"
+            @submit="handleSubmit"
+          />
+        </template>
       </div>
+
+      <aside v-if="problem" class="problem-aside">
+        <ProblemMeta
+          :difficulty="problem.difficulty"
+          :tags="problem.tags"
+          :time-limit="problem.timeLimit"
+          :memory-limit="problem.memoryLimit"
+        />
+      </aside>
     </template>
   </section>
 </template>
 
 <style scoped>
-.problem-layout {
-  display: grid;
+.problem-detail-page {
   grid-template-columns: 1fr 280px;
-  gap: 28px;
+  grid-template-areas:
+    "header ."
+    "main   aside";
+  gap: 12px 28px;
   align-items: start;
-  margin-top: 22px;
 }
 
-.problem-layout__main {
+.page-error {
+  grid-column: 1 / -1;
+}
+
+.page-header {
+  grid-area: header;
+  text-align: center;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.problem-main {
+  grid-area: main;
   display: grid;
   gap: 0;
   min-width: 0;
+}
+
+.problem-aside {
+  grid-area: aside;
+  display: grid;
+  gap: 22px;
 }
 
 .loading-area {
@@ -155,12 +177,16 @@ async function handleSubmit(language: SubmitLanguage, code: string) {
 }
 
 @media (max-width: 860px) {
-  .problem-layout {
+  .problem-detail-page {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "aside"
+      "main";
   }
 
-  .problem-layout__aside {
-    order: -1;
+  .page-header {
+    text-align: left;
   }
 }
 </style>

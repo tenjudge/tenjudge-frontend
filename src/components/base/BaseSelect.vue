@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 export interface SelectOption {
   value: string
   label: string
 }
 
-defineProps<{
+const props = defineProps<{
   id: string
   label: string
   options: readonly SelectOption[]
@@ -42,10 +42,10 @@ onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick, true)
 })
 
-function selectedLabel(): string {
-  const found = options.find((o) => o.value === model.value)
+const selectedLabel = computed(() => {
+  const found = props.options.find((o) => o.value === model.value)
   return found ? found.label : ''
-}
+})
 </script>
 
 <template>
@@ -59,10 +59,10 @@ function selectedLabel(): string {
       @click="open = !open"
       @keydown.escape="close"
     >
-      <span v-if="!model.value" class="select__placeholder">
+      <span v-if="!model" class="select__placeholder">
         {{ placeholder || 'Select an option' }}
       </span>
-      <span v-else class="select__value">{{ selectedLabel() }}</span>
+      <span v-else class="select__value">{{ selectedLabel }}</span>
       <span class="select__arrow" :class="{ 'is-open': open }">
         <svg width="10" height="6" viewBox="0 0 10 6">
           <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" />
@@ -75,7 +75,7 @@ function selectedLabel(): string {
         v-for="option in options"
         :key="option.value"
         class="select__option"
-        :class="{ 'is-selected': model.value === option.value }"
+        :class="{ 'is-selected': model === option.value }"
         @click="select(option)"
       >
         {{ option.label }}

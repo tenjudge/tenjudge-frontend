@@ -39,6 +39,7 @@ const code = ref('')
     <div class="submit-panel__actions">
       <BaseButton
         variant="primary"
+        size="small"
         :loading="loading"
         :disabled="!code.trim()"
         @click="emit('submit', language, code)"

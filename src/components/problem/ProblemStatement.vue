@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { renderMarkdown } from '@/utils/markdown'
 
 const props = defineProps<{
   statement: string
   solution?: string
+  backTo?: string
+  backLabel?: string
 }>()
+
+const router = useRouter()
 
 const tabs = computed(() => {
   const items: { key: string; label: string }[] = [
-    { key: 'problem', label: 'Problem' },
+    { key: 'problem', label: 'Statement' },
   ]
   if (props.solution) {
     items.push({ key: 'solution', label: 'Solution' })
@@ -29,7 +34,19 @@ const renderedHtml = computed(() => {
 
 <template>
   <div class="problem-statement">
-    <nav v-if="tabs.length > 1" class="statement-tabs">
+    <nav v-if="backTo || tabs.length > 1" class="statement-tabs">
+      <button
+        v-if="backTo"
+        type="button"
+        class="statement-tabs__back"
+        :aria-label="backLabel || 'Back'"
+        @click="router.push(backTo)"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>{{ backLabel || 'Back' }}</span>
+      </button>
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -59,9 +76,29 @@ const renderedHtml = computed(() => {
   border-bottom: 1px solid var(--color-border);
 }
 
+.statement-tabs__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  margin-right: 8px;
+  border: 0;
+  border-right: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.statement-tabs__back:hover {
+  color: var(--color-text);
+}
+
 .statement-tabs__tab {
   position: relative;
-  padding: 10px 20px;
+  padding: 10px 8px;
   border: 0;
   background: none;
   color: var(--color-text-subtle);
@@ -83,8 +120,8 @@ const renderedHtml = computed(() => {
   content: '';
   position: absolute;
   bottom: -1px;
-  left: 20px;
-  right: 20px;
+  left: 8px;
+  right: 8px;
   height: 2px;
   background: var(--color-focus);
   border-radius: 1px 1px 0 0;
