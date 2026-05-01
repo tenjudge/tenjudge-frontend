@@ -3,12 +3,14 @@ withDefaults(
   defineProps<{
     type?: 'button' | 'submit' | 'reset'
     variant?: 'primary' | 'secondary' | 'ghost'
+    size?: 'normal' | 'small'
     disabled?: boolean
     loading?: boolean
   }>(),
   {
     type: 'button',
     variant: 'primary',
+    size: 'normal',
     disabled: false,
     loading: false,
   },
@@ -18,7 +20,7 @@ withDefaults(
 <template>
   <button
     class="base-button"
-    :class="`base-button--${variant}`"
+    :class="[`base-button--${variant}`, size === 'small' && 'base-button--small']"
     :type="type"
     :disabled="disabled || loading"
   >
@@ -61,6 +63,12 @@ withDefaults(
 .base-button--ghost {
   background: transparent;
   color: var(--color-text-muted);
+}
+
+.base-button--small {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
 }
 
 .base-button__spinner {

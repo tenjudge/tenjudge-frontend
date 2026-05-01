@@ -37,7 +37,7 @@ const model = defineModel<string>({ required: true })
 <style scoped>
 .field {
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .field__label {

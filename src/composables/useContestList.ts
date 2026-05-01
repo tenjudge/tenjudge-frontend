@@ -1,11 +1,9 @@
 import { computed, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { getContestPage, registerContest, unregisterContest } from '@/api/contests'
-import { useToast } from '@/composables/useToast'
+import { getContestPage } from '@/api/contests'
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, PAGE_QUERY_KEYS } from '@/config/pagination'
 import { CONTEST_STATUS, type ContestStatus } from '@/constants/contest'
-import { useAuthStore } from '@/stores/auth'
 import type { ContestListItem } from '@/types/contest'
 import { getContestStatus } from '@/utils/contest'
 import { toAppError } from '@/utils/error'
@@ -47,15 +45,12 @@ export interface ContestListRow extends ContestListItem {
 export function useContestList() {
   const route = useRoute()
   const router = useRouter()
-  const toast = useToast()
-  const authStore = useAuthStore()
 
   const contests = shallowRef<ContestListRow[]>([])
   const total = shallowRef(0)
   const pages = shallowRef(1)
   const loading = shallowRef(false)
   const errorMessage = shallowRef('')
-  const pendingContestId = shallowRef<number | null>(null)
 
   const currentPage = computed(() =>
     parsePositiveInt(route.query[PAGE_QUERY_KEYS.current], DEFAULT_PAGE),
@@ -74,7 +69,7 @@ export function useContestList() {
   )
 
   watch(
-    () => [currentPage.value, authStore.isAuthenticated],
+    () => currentPage.value,
     () => {
       void loadContests()
     },
@@ -146,51 +141,12 @@ export function useContestList() {
     return 'Registered'
   }
 
-  async function handleRegistration(contest: ContestListRow) {
-    if (!authStore.isAuthenticated) {
-      toast.error('Please log in to manage contest registration.')
-      await router.push({
-        path: '/auth/login',
-        query: { redirect: route.fullPath },
-      })
-      return
-    }
-
-    pendingContestId.value = contest.id
-
-    try {
-      if (canRegister(contest)) {
-        await registerContest(contest.id)
-        contests.value = contests.value.map((item) =>
-          item.id === contest.id ? { ...item, registered: true } : item,
-        )
-        toast.success('Contest registration submitted.')
-        return
-      }
-
-      // Backend only allows cancellation before the contest starts, so the UI hides the
-      // action for running and ended contests and only calls unregister in the upcoming state.
-      if (canUnregister(contest)) {
-        await unregisterContest(contest.id)
-        contests.value = contests.value.map((item) =>
-          item.id === contest.id ? { ...item, registered: false } : item,
-        )
-        toast.success('Contest registration cancelled.')
-      }
-    } catch (error) {
-      toast.error(toAppError(error).message)
-    } finally {
-      pendingContestId.value = null
-    }
-  }
-
   return {
     contests,
     total,
     pages,
     loading,
     errorMessage,
-    pendingContestId,
     currentPage,
     currentOrUpcomingContests,
     endedContests,
@@ -198,7 +154,6 @@ export function useContestList() {
     canRegister,
     canUnregister,
     getActionLabel,
-    handleRegistration,
     handlePageChange,
   }
 }

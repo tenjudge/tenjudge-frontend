@@ -9,7 +9,6 @@ const {
   total,
   pages,
   errorMessage,
-  pendingContestId,
   currentPage,
   currentOrUpcomingContests,
   endedContests,
@@ -17,7 +16,6 @@ const {
   canRegister,
   canUnregister,
   getActionLabel,
-  handleRegistration,
   handlePageChange,
 } = useContestList()
 </script>
@@ -69,19 +67,17 @@ const {
                 <td>{{ formatDateTime(contest.startTime) }}</td>
                 <td>{{ contest.durationLabel }}</td>
                 <td>
-                  <button
+                  <RouterLink
                     class="register-link"
                     :class="{
                       'is-register': canRegister(contest),
                       'is-unregister': canUnregister(contest),
                       'is-static': !canRegister(contest) && !canUnregister(contest),
                     }"
-                    type="button"
-                    :disabled="pendingContestId === contest.id || (!canRegister(contest) && !canUnregister(contest))"
-                    @click="handleRegistration(contest)"
+                    :to="`/contests/${contest.id}/register?name=${encodeURIComponent(contest.name)}&startTime=${encodeURIComponent(contest.startTime)}&endTime=${encodeURIComponent(contest.endTime)}&registered=${contest.registered || false}`"
                   >
-                    {{ pendingContestId === contest.id ? 'Working...' : getActionLabel(contest) }}
-                  </button>
+                    {{ getActionLabel(contest) }}
+                  </RouterLink>
                 </td>
               </tr>
             </tbody>

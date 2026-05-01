@@ -23,6 +23,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/contests/ContestListView.vue'),
   },
   {
+    path: '/contests/:contestId/register',
+    name: 'contest-register',
+    component: () => import('@/views/contests/ContestRegisterView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/contests/:contestId',
     name: 'contest-detail',
     component: () => import('@/views/contests/ContestDetailView.vue'),
