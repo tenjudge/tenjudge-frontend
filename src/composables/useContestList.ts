@@ -1,0 +1,204 @@
+import { computed, shallowRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+import { getContestPage, registerContest, unregisterContest } from '@/api/contests'
+import { useToast } from '@/composables/useToast'
+import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, PAGE_QUERY_KEYS } from '@/config/pagination'
+import { CONTEST_STATUS, type ContestStatus } from '@/constants/contest'
+import { useAuthStore } from '@/stores/auth'
+import type { ContestListItem } from '@/types/contest'
+import { getContestStatus } from '@/utils/contest'
+import { toAppError } from '@/utils/error'
+
+function parsePositiveInt(value: unknown, fallback: number): number {
+  const candidate = Array.isArray(value) ? value[0] : value
+  const parsed = Number(candidate)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function getContestDurationLabel(contest: ContestListItem) {
+  const start = new Date(contest.startTime).getTime()
+  const end = new Date(contest.endTime).getTime()
+
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+    return '-'
+  }
+
+  const totalMinutes = Math.round((end - start) / 60_000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`
+  }
+
+  if (hours > 0) {
+    return `${hours}h`
+  }
+
+  return `${minutes}m`
+}
+
+export interface ContestListRow extends ContestListItem {
+  status: ContestStatus
+  durationLabel: string
+}
+
+export function useContestList() {
+  const route = useRoute()
+  const router = useRouter()
+  const toast = useToast()
+  const authStore = useAuthStore()
+
+  const contests = shallowRef<ContestListRow[]>([])
+  const total = shallowRef(0)
+  const pages = shallowRef(1)
+  const loading = shallowRef(false)
+  const errorMessage = shallowRef('')
+  const pendingContestId = shallowRef<number | null>(null)
+
+  const currentPage = computed(() =>
+    parsePositiveInt(route.query[PAGE_QUERY_KEYS.current], DEFAULT_PAGE),
+  )
+
+  const currentOrUpcomingContests = computed(() =>
+    contests.value.filter((contest) => contest.status !== CONTEST_STATUS.ended),
+  )
+
+  const endedContests = computed(() =>
+    contests.value.filter((contest) => contest.status === CONTEST_STATUS.ended),
+  )
+
+  const showInitialSkeleton = computed(
+    () => loading.value && contests.value.length === 0 && !errorMessage.value,
+  )
+
+  watch(
+    () => [currentPage.value, authStore.isAuthenticated],
+    () => {
+      void loadContests()
+    },
+    { immediate: true },
+  )
+
+  async function loadContests() {
+    loading.value = true
+    errorMessage.value = ''
+
+    try {
+      const result = await getContestPage({
+        current: currentPage.value,
+        size: DEFAULT_PAGE_SIZE,
+      })
+
+      contests.value = result.records.map((contest) => ({
+        ...contest,
+        status: getContestStatus(contest),
+        durationLabel: getContestDurationLabel(contest),
+      }))
+      total.value = result.total
+      pages.value = Math.max(result.pages || 1, 1)
+    } catch (error) {
+      errorMessage.value = toAppError(error, 'Unable to load contests.').message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function updateRouteQuery(nextCurrent: number) {
+    await router.replace({
+      query: {
+        ...route.query,
+        [PAGE_QUERY_KEYS.current]: String(nextCurrent),
+      },
+    })
+  }
+
+  async function handlePageChange(page: number) {
+    await updateRouteQuery(page)
+  }
+
+  function canRegister(contest: ContestListRow) {
+    return contest.status !== CONTEST_STATUS.ended && !contest.registered
+  }
+
+  function canUnregister(contest: ContestListRow) {
+    return contest.status === CONTEST_STATUS.upcoming && Boolean(contest.registered)
+  }
+
+  function getActionLabel(contest: ContestListRow) {
+    if (canRegister(contest)) {
+      return 'Register'
+    }
+
+    if (canUnregister(contest)) {
+      return 'Unregister'
+    }
+
+    if (contest.registered && contest.status === CONTEST_STATUS.running) {
+      return 'Registered'
+    }
+
+    if (contest.status === CONTEST_STATUS.ended) {
+      return 'Closed'
+    }
+
+    return 'Registered'
+  }
+
+  async function handleRegistration(contest: ContestListRow) {
+    if (!authStore.isAuthenticated) {
+      toast.error('Please log in to manage contest registration.')
+      await router.push({
+        path: '/auth/login',
+        query: { redirect: route.fullPath },
+      })
+      return
+    }
+
+    pendingContestId.value = contest.id
+
+    try {
+      if (canRegister(contest)) {
+        await registerContest(contest.id)
+        contests.value = contests.value.map((item) =>
+          item.id === contest.id ? { ...item, registered: true } : item,
+        )
+        toast.success('Contest registration submitted.')
+        return
+      }
+
+      // Backend only allows cancellation before the contest starts, so the UI hides the
+      // action for running and ended contests and only calls unregister in the upcoming state.
+      if (canUnregister(contest)) {
+        await unregisterContest(contest.id)
+        contests.value = contests.value.map((item) =>
+          item.id === contest.id ? { ...item, registered: false } : item,
+        )
+        toast.success('Contest registration cancelled.')
+      }
+    } catch (error) {
+      toast.error(toAppError(error).message)
+    } finally {
+      pendingContestId.value = null
+    }
+  }
+
+  return {
+    contests,
+    total,
+    pages,
+    loading,
+    errorMessage,
+    pendingContestId,
+    currentPage,
+    currentOrUpcomingContests,
+    endedContests,
+    showInitialSkeleton,
+    canRegister,
+    canUnregister,
+    getActionLabel,
+    handleRegistration,
+    handlePageChange,
+  }
+}

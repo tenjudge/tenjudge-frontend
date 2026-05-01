@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watchEffect } from 'vue'
+import { computed, reactive, watchEffect } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
+import { useAsyncState } from '@/composables/useAsyncState'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
-import { toAppError } from '@/utils/error'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,8 +18,7 @@ const form = reactive({
   password: '',
 })
 
-const loading = ref(false)
-const errorMessage = ref('')
+const { loading, error, run } = useAsyncState()
 
 const redirectPath = computed(() => {
   const redirect = route.query.redirect
@@ -35,23 +34,21 @@ watchEffect(() => {
 })
 
 async function handleSubmit() {
-  loading.value = true
-  errorMessage.value = ''
-
-  try {
+  const result = await run(async () => {
     await authStore.login({
       account: form.account.trim(),
       password: form.password,
     })
+    return true
+  }, 'Unable to sign in.')
+
+  if (result) {
     toast.success('Signed in successfully.')
     await router.push(redirectPath.value)
-  } catch (error) {
-    const appError = toAppError(error)
-    errorMessage.value = appError.message
-    toast.error(appError.message)
-  } finally {
-    loading.value = false
+    return
   }
+
+  toast.error(error.value?.message ?? 'Unable to sign in.')
 }
 </script>
 
@@ -80,7 +77,7 @@ async function handleSubmit() {
           required
         />
 
-        <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
+        <p v-if="error" class="form-error">{{ error.message }}</p>
 
         <BaseButton type="submit" :loading="loading">Login</BaseButton>
       </form>

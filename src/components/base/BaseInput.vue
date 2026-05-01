@@ -1,17 +1,22 @@
 <script setup lang="ts">
-defineProps<{
-  id: string
-  label: string
-  modelValue: string
-  type?: string
-  autocomplete?: string
-  required?: boolean
-  placeholder?: string
-}>()
+withDefaults(
+  defineProps<{
+    id: string
+    label: string
+    type?: string
+    autocomplete?: string
+    required?: boolean
+    placeholder?: string
+  }>(),
+  {
+    type: 'text',
+    autocomplete: undefined,
+    required: false,
+    placeholder: '',
+  },
+)
 
-defineEmits<{
-  'update:modelValue': [value: string]
-}>()
+const model = defineModel<string>({ required: true })
 </script>
 
 <template>
@@ -20,12 +25,11 @@ defineEmits<{
     <input
       :id="id"
       class="field__control"
-      :type="type ?? 'text'"
-      :value="modelValue"
+      v-model="model"
+      :type="type"
       :autocomplete="autocomplete"
       :required="required"
       :placeholder="placeholder"
-      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
   </label>
 </template>
