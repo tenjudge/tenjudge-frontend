@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import ContestSubNav from '@/components/contest/ContestSubNav.vue'
+import { ref, shallowRef, watch } from 'vue'
+
 import ContestInfoCard from '@/components/contest/ContestInfoCard.vue'
+import ContestSubNav from '@/components/contest/ContestSubNav.vue'
+import SubmissionTable from '@/components/submission/SubmissionTable.vue'
 import { useContestDetail } from '@/composables/useContestDetail'
-import { formatDateTime } from '@/utils/datetime'
+import { useAuthStore } from '@/stores/auth'
+import { getContestUserSubmissions } from '@/api/submissions'
+import type { SubmissionListItem } from '@/types/submission'
+import { toAppError } from '@/utils/error'
 
 const {
   contest,
@@ -14,10 +20,44 @@ const {
   activeTab,
 } = useContestDetail()
 
+const authStore = useAuthStore()
+
+const contestSubmissions = shallowRef<SubmissionListItem[]>([])
+const submissionsLoading = ref(false)
+const submissionsError = ref('')
+
+watch(
+  [activeTab, () => contest.value?.id],
+  ([tab, cid]) => {
+    if (tab === 'submissions' && cid) {
+      void loadContestSubmissions()
+    }
+  },
+  { immediate: true },
+)
+
+async function loadContestSubmissions() {
+  const userId = authStore.userInfo?.id
+  const contestId = contest.value?.id
+  if (!userId || !contestId) return
+
+  submissionsLoading.value = true
+  submissionsError.value = ''
+
+  try {
+    contestSubmissions.value = await getContestUserSubmissions(contestId, userId)
+  } catch (error) {
+    submissionsError.value = toAppError(error, 'Unable to load submissions.').message
+  } finally {
+    submissionsLoading.value = false
+  }
+}
+
 const placeholderTabs: Record<string, string> = {
-  submissions: 'Submissions list will be available here.',
   standings: 'Contest standings will be available here.',
 }
+
+const loadingRows = Array.from({ length: 5 }, (_, i) => i)
 </script>
 
 <template>
@@ -80,12 +120,65 @@ const placeholderTabs: Record<string, string> = {
             </div>
           </template>
 
+          <template v-else-if="activeTab === 'submissions'">
+            <div v-if="!authStore.isAuthenticated" class="panel placeholder">
+              <h2>Sign in required</h2>
+              <p>
+                <RouterLink to="/auth/login">Sign in</RouterLink>
+                to view your submissions in this contest.
+              </p>
+            </div>
+
+            <div v-else-if="submissionsError" class="form-error">
+              {{ submissionsError }}
+            </div>
+
+            <div v-else-if="submissionsLoading && contestSubmissions.length === 0">
+              <div class="table-frame">
+                <table class="submissions-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Problem</th>
+                      <th>Language</th>
+                      <th>Status</th>
+                      <th>Time</th>
+                      <th>Memory</th>
+                      <th>Submit Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="i in loadingRows" :key="i">
+                      <td v-for="j in 7" :key="j" class="skeleton-cell">
+                        <span class="skeleton-line" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div v-else-if="contestSubmissions.length === 0" class="panel placeholder">
+              <h2>No submissions</h2>
+              <p>You have no submissions in this contest yet.</p>
+            </div>
+
+            <SubmissionTable
+              v-else
+              :submissions="contestSubmissions"
+              :get-problem-link="(item) => {
+                const m = item.problemName?.match(/^([A-Z]+)\./)
+                return m ? `/contests/${contest!.id}/problems/${m[1]}` : null
+              }"
+            />
+          </template>
+
           <div
             v-else
             class="panel placeholder"
           >
-            <h2>{{ activeTab === 'submissions' ? 'Submissions' : 'Standings' }}</h2>
-            <p>{{ placeholderTabs[activeTab] }}</p>
+            <h2>Standings</h2>
+            <p>{{ placeholderTabs['standings'] }}</p>
           </div>
         </div>
 
@@ -129,6 +222,44 @@ const placeholderTabs: Record<string, string> = {
 
 .skeleton-line--wide {
   width: 86%;
+}
+
+/* Submissions tab */
+
+.submissions-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.submissions-table th {
+  height: 36px;
+  background: #64748b;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.submissions-table td {
+  height: 39px;
+  padding: 0 16px;
+  vertical-align: middle;
+}
+
+.skeleton-cell {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.skeleton-cell .skeleton-line {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #edf2f7 0%, #f7f9fb 50%, #edf2f7 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s linear infinite;
+  display: block;
+  max-width: 70%;
+  margin: 0 auto;
 }
 
 @keyframes skeleton-shimmer {

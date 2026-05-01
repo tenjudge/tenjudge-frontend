@@ -51,7 +51,17 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/submissions',
     name: 'submissions',
-    component: () => import('@/views/submissions/SubmissionPlaceholderView.vue'),
+    component: () => import('@/views/submissions/SubmissionListView.vue'),
+  },
+  {
+    path: '/submission/:submissionId',
+    name: 'submission-detail',
+    component: () => import('@/views/submissions/SubmissionDetailView.vue'),
+  },
+  {
+    path: '/submissions/:userId',
+    name: 'user-submissions',
+    component: () => import('@/views/submissions/SubmissionListView.vue'),
   },
   {
     path: '/agent',

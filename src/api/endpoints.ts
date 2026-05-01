@@ -17,6 +17,10 @@ export const API_ENDPOINTS = {
   },
   submissions: {
     judge: '/submit/judge',
+    userList: (userId: number) => `/submit/user/${userId}`,
+    contestUserList: (contestId: number, userId: number) =>
+      `/submit/contest/${contestId}/user/${userId}`,
+    detail: (submissionId: number) => `/submit/${submissionId}`,
   },
 } as const
 
