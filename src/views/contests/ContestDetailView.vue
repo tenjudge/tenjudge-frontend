@@ -25,6 +25,9 @@ const authStore = useAuthStore()
 const contestSubmissions = shallowRef<SubmissionListItem[]>([])
 const submissionsLoading = ref(false)
 const submissionsError = ref('')
+// Delay skeleton to avoid flicker on fast responses (e.g. empty list)
+const showSkeleton = ref(false)
+let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(
   [activeTab, () => contest.value?.id],
@@ -43,12 +46,21 @@ async function loadContestSubmissions() {
 
   submissionsLoading.value = true
   submissionsError.value = ''
+  // Only show skeleton if the request takes longer than 300ms
+  skeletonTimer = setTimeout(() => {
+    showSkeleton.value = true
+  }, 300)
 
   try {
     contestSubmissions.value = await getContestUserSubmissions(contestId, userId)
   } catch (error) {
     submissionsError.value = toAppError(error, 'Unable to load submissions.').message
   } finally {
+    if (skeletonTimer) {
+      clearTimeout(skeletonTimer)
+      skeletonTimer = null
+    }
+    showSkeleton.value = false
     submissionsLoading.value = false
   }
 }
@@ -133,7 +145,7 @@ const loadingRows = Array.from({ length: 5 }, (_, i) => i)
               {{ submissionsError }}
             </div>
 
-            <div v-else-if="submissionsLoading && contestSubmissions.length === 0">
+            <div v-else-if="showSkeleton && submissionsLoading && contestSubmissions.length === 0">
               <div class="table-frame">
                 <table class="submissions-table">
                   <thead>
