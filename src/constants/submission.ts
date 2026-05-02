@@ -4,7 +4,9 @@ export const SUBMISSION_STATUS_LABELS: Record<string, string> = {
   TIME_LIMIT_EXCEEDED: 'Time Limit Exceeded',
   MEMORY_LIMIT_EXCEEDED: 'Memory Limit Exceeded',
   RUNTIME_ERROR: 'Runtime Error',
-  COMPILATION_ERROR: 'Compilation Error',
+  COMPILE_ERROR: 'Compile Error',
+  SYSTEM_ERROR: 'System Error',
+  SKIPPED: 'Skipped',
   PENDING: 'Pending',
   JUDGING: 'Judging',
 }
@@ -15,7 +17,9 @@ export const SUBMISSION_STATUS_COLORS: Record<string, string> = {
   TIME_LIMIT_EXCEEDED: 'var(--color-warning)',
   MEMORY_LIMIT_EXCEEDED: 'var(--color-warning)',
   RUNTIME_ERROR: 'var(--color-danger)',
-  COMPILATION_ERROR: 'var(--color-warning)',
+  COMPILE_ERROR: 'var(--color-warning)',
+  SYSTEM_ERROR: 'var(--color-danger)',
+  SKIPPED: 'var(--color-text-muted)',
   PENDING: 'var(--color-text-muted)',
   JUDGING: 'var(--color-text-muted)',
 }

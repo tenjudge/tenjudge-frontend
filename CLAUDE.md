@@ -79,15 +79,14 @@
 - 分页数据结构包含 `records`、`total`、`current`、`size`、`pages`。
 - 分页查询参数、默认分页大小、接口参数名、业务枚举值、状态映射、语言选项、可见性选项等不应散落硬编码在页面或组件中；应集中放在配置 / 常量文件中维护，并由接口封装和业务组件复用。
 - 当前前端分页约定固定为每页 30 条，用户只能切换页码，不能在界面中切换每页数量。
-- 提交列表项（SubmissionListItemVO）中 problemName 由服务端拼接好，前端直接展示。普通列表格式为 `#123. name`，比赛内格式为 `A. name`；题目不存在时为 null。
+- 后端测评结果枚举见 `docs/reference/judge_result.txt`，共 8 种状态（ACCEPTED、COMPILE_ERROR、RUNTIME_ERROR、TIME_LIMIT_EXCEEDED、MEMORY_LIMIT_EXCEEDED、WRONG_ANSWER、SYSTEM_ERROR、SKIPPED）。前端状态映射维护在 `src/constants/submission.ts`。
+- 后端业务错误码见 `docs/reference/biz_error_code.txt`。其中 10001（UNAUTHORIZED）表示登录过期或未授权，前端 Axios 响应拦截器检测到 10001 后自动清除本地会话并跳转登录页。
 - 提交详情接口（GET /submit/{submissionId}）返回完整源码和测试点详情数组，权限限定为提交者本人或管理员。
 - 用户提交列表分页查询默认每页 30 条，最大允许 100 条。
 - 比赛内用户提交列表返回全部结果，不分页。
 - 当前 API 文档包含注册、登录、登出、题目列表 / 详情 / 创建 / 更新 / 可见性修改、比赛列表 / 详情 / 创建 / 更新 / 报名 / 取消报名、比赛内按题号查询题目、Agent 按题目 ID 查询题目、提交代码测评、提交详情查询（含源码和测试点）、用户提交分页列表、比赛内用户提交列表等能力。
 - 后续根据 Swagger API 文档进行前端开发时，需要结合 Online Judge 常见业务场景主动识别潜在接口缺口；如果某个前端功能可能需要但 API 中暂未提供，应先与用户沟通确认，确认需要后再进行前端预留或适配设计。
 - 当前 API 文档暂未看到测评状态轮询、排行榜、当前登录用户信息、用户资料更新等常见前端能力；涉及对应页面时需要先与用户确认接口计划。
-- 错误码等待确认。
-
 ## 6. 协作约定
 
 - Claude Code 对话统一使用中文回答。

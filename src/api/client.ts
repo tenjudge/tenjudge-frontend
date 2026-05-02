@@ -1,7 +1,8 @@
 import axios, { AxiosError } from 'axios'
 
-import { API_BASE_URL, API_SUCCESS_CODE } from '@/config/request'
+import { API_BASE_URL, API_SUCCESS_CODE, API_UNAUTHORIZED_CODE } from '@/config/request'
 import { useAuthStore } from '@/stores/auth'
+import { router } from '@/router'
 import type { ApiResult, AppError } from '@/types/common'
 
 export const http = axios.create({
@@ -24,6 +25,17 @@ http.interceptors.response.use(
     const result = response.data as ApiResult<unknown>
 
     if (typeof result?.code === 'number') {
+      if (result.code === API_UNAUTHORIZED_CODE) {
+        const authStore = useAuthStore()
+        authStore.clearSession()
+        router.push({ name: 'login' }).catch(() => {})
+        throw {
+          code: result.code,
+          message: result.message || 'Session expired. Please log in again.',
+          raw: result,
+        } satisfies AppError
+      }
+
       if (result.code !== API_SUCCESS_CODE) {
         throw {
           code: result.code,
@@ -41,6 +53,12 @@ http.interceptors.response.use(
     const result = error.response?.data
 
     if (result && typeof result.code === 'number') {
+      if (result.code === API_UNAUTHORIZED_CODE) {
+        const authStore = useAuthStore()
+        authStore.clearSession()
+        router.push({ name: 'login' }).catch(() => {})
+      }
+
       return Promise.reject({
         code: result.code,
         message: result.message || 'Request failed.',

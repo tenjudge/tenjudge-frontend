@@ -397,14 +397,6 @@ const loadingRows = Array.from({ length: 3 }, (_, i) => i)
   cursor: pointer;
 }
 
-.testcases-table__row:nth-child(4n+1) {
-  background: var(--color-surface);
-}
-
-.testcases-table__row:nth-child(4n+3) {
-  background: var(--color-background-muted);
-}
-
 .testcases-table__row:hover {
   background: #f1f5f9;
 }
