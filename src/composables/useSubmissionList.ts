@@ -5,6 +5,7 @@ import { getUserSubmissions } from '@/api/submissions'
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, PAGE_QUERY_KEYS } from '@/config/pagination'
 import type { SubmissionListItem } from '@/types/submission'
 import { toAppError } from '@/utils/error'
+import { useSubmissionPolling } from './useSubmissionPolling'
 
 function parsePositiveInt(value: unknown, fallback: number): number {
   const candidate = Array.isArray(value) ? value[0] : value
@@ -22,6 +23,30 @@ export function useSubmissionList(userId: () => number | null) {
   const loading = shallowRef(false)
   const errorMessage = shallowRef('')
 
+  const polling = useSubmissionPolling()
+
+  function hasPending() {
+    return submissions.value.some((s) => s.status === 'PENDING')
+  }
+
+  async function silentRefresh() {
+    const id = userId()
+    if (id == null) return
+
+    try {
+      const result = await getUserSubmissions(id, {
+        current: currentPage.value,
+        size: DEFAULT_PAGE_SIZE,
+      })
+
+      submissions.value = result.records
+      total.value = result.total
+      pages.value = Math.max(result.pages || 1, 1)
+    } catch {
+      // Polling failures are silently ignored
+    }
+  }
+
   const currentPage = computed(() =>
     parsePositiveInt(route.query[PAGE_QUERY_KEYS.current], DEFAULT_PAGE),
   )
@@ -35,6 +60,8 @@ export function useSubmissionList(userId: () => number | null) {
   )
 
   async function loadSubmissions() {
+    polling.stop()
+
     const id = userId()
     if (id == null) {
       submissions.value = []
@@ -55,6 +82,10 @@ export function useSubmissionList(userId: () => number | null) {
       submissions.value = result.records
       total.value = result.total
       pages.value = Math.max(result.pages || 1, 1)
+
+      if (hasPending()) {
+        polling.start(silentRefresh, hasPending)
+      }
     } catch (error) {
       errorMessage.value = toAppError(error, 'Unable to load submissions.').message
     } finally {
@@ -78,6 +109,7 @@ export function useSubmissionList(userId: () => number | null) {
     currentPage,
     loading,
     errorMessage,
+    isPolling: polling.isPolling,
     handlePageChange,
   }
 }

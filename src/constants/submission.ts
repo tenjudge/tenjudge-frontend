@@ -8,7 +8,6 @@ export const SUBMISSION_STATUS_LABELS: Record<string, string> = {
   SYSTEM_ERROR: 'System Error',
   SKIPPED: 'Skipped',
   PENDING: 'Pending',
-  JUDGING: 'Judging',
 }
 
 export const SUBMISSION_STATUS_COLORS: Record<string, string> = {
@@ -21,7 +20,6 @@ export const SUBMISSION_STATUS_COLORS: Record<string, string> = {
   SYSTEM_ERROR: 'var(--color-danger)',
   SKIPPED: 'var(--color-text-muted)',
   PENDING: 'var(--color-text-muted)',
-  JUDGING: 'var(--color-text-muted)',
 }
 
 export function getSubmissionStatusLabel(status: string): string {

@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getContestUserSubmissions } from '@/api/submissions'
 import type { SubmissionListItem } from '@/types/submission'
 import { toAppError } from '@/utils/error'
+import { useSubmissionPolling } from '@/composables/useSubmissionPolling'
 
 const {
   contest,
@@ -29,6 +30,24 @@ const submissionsError = ref('')
 const showSkeleton = ref(false)
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
+const polling = useSubmissionPolling()
+
+function hasContestPending() {
+  return contestSubmissions.value.some((s) => s.status === 'PENDING')
+}
+
+async function silentRefreshContestSubmissions() {
+  const userId = authStore.userInfo?.id
+  const contestId = contest.value?.id
+  if (!userId || !contestId) return
+
+  try {
+    contestSubmissions.value = await getContestUserSubmissions(contestId, userId)
+  } catch {
+    // Polling failures are silently ignored
+  }
+}
+
 watch(
   [activeTab, () => contest.value?.id],
   ([tab, cid]) => {
@@ -40,6 +59,8 @@ watch(
 )
 
 async function loadContestSubmissions() {
+  polling.stop()
+
   const userId = authStore.userInfo?.id
   const contestId = contest.value?.id
   if (!userId || !contestId) return
@@ -53,6 +74,10 @@ async function loadContestSubmissions() {
 
   try {
     contestSubmissions.value = await getContestUserSubmissions(contestId, userId)
+
+    if (hasContestPending()) {
+      polling.start(silentRefreshContestSubmissions, hasContestPending)
+    }
   } catch (error) {
     submissionsError.value = toAppError(error, 'Unable to load submissions.').message
   } finally {
