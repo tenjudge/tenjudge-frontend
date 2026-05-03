@@ -24,3 +24,31 @@ export interface ContestDetail {
   problems: ContestProblemBrief[]
 }
 
+export interface ContestBoardProblem {
+  problemId: number
+  problemIndex: string
+}
+
+export interface ContestProblemResult {
+  accepted: boolean
+  acceptedAt: number
+  wrongAttemptsBeforeAc: number
+}
+
+export interface ContestBoardListItem {
+  rank: number
+  userId: number
+  username: string
+  solvedCount: number
+  penalty: number
+  problemResults?: Record<string, ContestProblemResult | undefined>
+}
+
+export interface ContestBoardPage {
+  problems: ContestBoardProblem[]
+  records: ContestBoardListItem[]
+  total: number
+  current: number
+  size: number
+  pages: number
+}

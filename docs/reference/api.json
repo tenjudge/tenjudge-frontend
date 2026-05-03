@@ -809,6 +809,62 @@
         }
       }
     },
+    "/contest/{contestId}/board": {
+      "get": {
+        "tags": [
+          "Contest"
+        ],
+        "summary": "分页查询比赛榜单",
+        "description": "公开分页查询指定比赛榜单。比赛不存在返回 CONTEST_NOT_FOUND；比赛开始前返回 CONTEST_NOT_STARTED。",
+        "operationId": "queryContestBoardPage",
+        "parameters": [
+          {
+            "name": "contestId",
+            "in": "path",
+            "description": "比赛 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "current",
+            "in": "query",
+            "description": "当前页码，从 1 开始",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "每页数量，最大 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBoardPageVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/agent/problem/{id}": {
       "get": {
         "tags": [
@@ -901,7 +957,7 @@
       },
       "ContestProblemDTO": {
         "type": "object",
-        "description": "比赛题目编排项",
+        "description": "比赛题目列表",
         "properties": {
           "problemId": {
             "type": "integer",
@@ -1879,6 +1935,123 @@
           },
           "data": {
             "$ref": "#/components/schemas/ContestDetailVO"
+          }
+        }
+      },
+      "BoardListItemVO": {
+        "type": "object",
+        "description": "榜单列表项",
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "format": "int64",
+            "description": "排名",
+            "example": 1
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "用户 ID",
+            "example": 1001
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "example": "Alice"
+          },
+          "solvedCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "过题数"
+          },
+          "penalty": {
+            "type": "integer",
+            "format": "int32",
+            "description": "罚时，单位分钟"
+          },
+          "problemResults": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProblemResultDTO"
+            },
+            "description": "每题表现，key 为 problemId，前端按 BoardPageVO.problems 的顺序取值渲染"
+          }
+        }
+      },
+      "BoardPageVO": {
+        "type": "object",
+        "description": "榜单分页列表",
+        "properties": {
+          "problems": {
+            "type": "array",
+            "description": "比赛题目列，按 problemIndex 字典序排列",
+            "items": {
+              "$ref": "#/components/schemas/ContestProblemDTO"
+            }
+          },
+          "records": {
+            "type": "array",
+            "description": "当前页榜单行数据",
+            "items": {
+              "$ref": "#/components/schemas/BoardListItemVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总记录数"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64",
+            "description": "当前页码"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "每页数量"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总页数"
+          }
+        }
+      },
+      "ProblemResultDTO": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "description": "该题是否已经在比赛中通过",
+            "example": true
+          },
+          "acceptedAt": {
+            "type": "integer",
+            "format": "int32",
+            "description": "首次通过该题时距离比赛开始的分钟数，按 ICPC 规则向下取整；未通过时为 0",
+            "example": 37
+          },
+          "wrongAttemptsBeforeAc": {
+            "type": "integer",
+            "format": "int32",
+            "description": "通过前的错误提交次数",
+            "example": 2
+          }
+        }
+      },
+      "ResultBoardPageVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/BoardPageVO"
           }
         }
       },

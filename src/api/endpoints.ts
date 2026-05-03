@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     detail: (contestId: number) => `/contest/${contestId}`,
     problem: (contestId: number, index: string) =>
       `/contest/${contestId}/problem/${encodeURIComponent(index)}`,
+    board: (contestId: number) => `/contest/${contestId}/board`,
     register: '/contest/register',
   },
   submissions: {
@@ -23,4 +24,3 @@ export const API_ENDPOINTS = {
     detail: (submissionId: number) => `/submit/${submissionId}`,
   },
 } as const
-

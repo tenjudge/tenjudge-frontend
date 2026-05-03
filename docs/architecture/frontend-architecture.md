@@ -11,15 +11,16 @@ The first stage should support:
 - Contest list and contest detail pages.
 - Contest registration and cancellation.
 - Contest problem viewing.
+- Contest standings.
 - Code submission for public problems and contest problems.
+- User submission list and submission detail.
 - Clear success and failure feedback through bottom-right toast messages.
 
 The first stage should not implement full admin workflows. Admin-related backend APIs may exist, but their UI should remain out of scope until the product scope is confirmed.
 
 The following features should be placeholders or deferred because the current API document does not provide enough backend support:
 
-- Submission list, submission detail, and judge status polling.
-- Contest ranking.
+- Judge status polling.
 - User profile editing and user settings.
 - Full Agent chat or Agent workflow.
 
@@ -142,7 +143,13 @@ Recommended first-stage routes:
 /problems/:problemId
 
 /submissions
-  Placeholder until submission query APIs exist.
+  User submission list.
+
+/submissions/:userId
+  Public user submission list.
+
+/submission/:submissionId
+  Submission detail.
 
 /agent
   Placeholder until Agent product scope is confirmed.
@@ -181,8 +188,8 @@ Recommended service modules:
 
 - `api/auth.ts`: register, login, logout.
 - `api/problems.ts`: problem page, problem detail.
-- `api/contests.ts`: contest page, contest detail, contest problem, register, unregister.
-- `api/submissions.ts`: submit judge request.
+- `api/contests.ts`: contest page, contest detail, contest problem, contest standings, register, unregister.
+- `api/submissions.ts`: submit judge request, submission list, contest submission list, submission detail.
 
 Admin APIs should not be wired into views during the first stage unless the product scope changes.
 
@@ -204,8 +211,13 @@ Core types:
 - `ContestListItem`
 - `ContestDetail`
 - `ContestProblemBrief`
+- `ContestBoardPage`
+- `ContestBoardRow`
+- `ContestBoardProblemResult`
 - `JudgeRequest`
 - `SubmitJudgeResult`
+- `SubmissionListItem`
+- `SubmissionDetail`
 
 Important modeling details:
 
@@ -295,7 +307,7 @@ Main navigation:
 - Submissions
 - Agent
 
-`Submissions` and `Agent` can exist as placeholder pages, but they should not imply a finished feature.
+`Agent` can exist as a placeholder page, but it should not imply a finished feature.
 
 Reusable base components should start small:
 
@@ -333,6 +345,13 @@ Do not build a complex generic table system until two or more pages clearly need
 - Show contest problems.
 - Provide contest-level navigation only for features that exist.
 
+### Contest Standings
+
+- Fetch `GET /contest/{contestId}/board` with `current` and `size`.
+- Use the returned `problems` array as the table column source, sorted by backend-provided `problemIndex`.
+- Fill each row's problem cells from `problemResults[problemId]`; do not infer problem order from object key iteration.
+- Display solved count and penalty in minutes.
+
 ### Contest Problem
 
 - Fetch by `contestId` and `problemIndex`.
@@ -353,6 +372,12 @@ Add a code comment near the contest submission payload explaining that contest s
 - Render Markdown statement.
 - Submit without `contestId`.
 
+### Submissions
+
+- Fetch the current user's paginated non-Agent submissions for the submissions list.
+- Fetch submission detail by `submissionId`; detail includes source code and test case results when the current user has permission.
+- Fetch contest-scoped user submissions from the contest submissions tab.
+
 ### Auth Pages
 
 - Login uses `account` and `password`.
@@ -363,7 +388,7 @@ Add a code comment near the contest submission payload explaining that contest s
 - Backend business failures should show the backend `message` in an error toast.
 - Successful login, registration, contest registration, cancellation, logout, and code submission should show success toasts.
 - Code submission success should display or otherwise preserve the returned `submissionId`.
-- Do not implement judge result polling until the backend provides an API for it.
+- Dedicated judge status polling is still not available; any refresh behavior should be built on existing submission query APIs or confirmed with the backend first.
 - Empty lists should use an empty state, not an error state.
 - Missing problem or contest details should use a page-level error state.
 
@@ -371,10 +396,7 @@ Add a code comment near the contest submission payload explaining that contest s
 
 Current API gaps affecting ordinary-user UX:
 
-- No submission list API.
-- No submission detail API.
 - No judge status polling API.
-- No contest ranking API.
 - No current-user refresh API.
 - No user profile update API.
 
@@ -391,6 +413,7 @@ Recommended implementation sequence:
 5. Implement contest list, contest detail, registration, and contest problem view.
 6. Implement problem list and public problem detail.
 7. Implement `CodeSubmitPanel` for both public and contest submissions.
-8. Add placeholder pages for Submissions and Agent.
+8. Implement submission list and submission detail.
+9. Add a placeholder page for Agent.
 
 This order validates shared infrastructure early while keeping the first visible product path focused on ordinary users.
