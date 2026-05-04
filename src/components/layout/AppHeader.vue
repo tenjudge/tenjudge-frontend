@@ -38,7 +38,7 @@ async function handleLogout() {
 <template>
   <header class="app-header">
     <RouterLink class="brand" to="/contests" :aria-label="`${APP_NAME} home`">
-      <span class="brand__mark" aria-hidden="true">TJ</span>
+      <img class="brand__mark" src="/logo.svg" alt="" aria-hidden="true" />
       <span>{{ APP_NAME }}</span>
     </RouterLink>
 
@@ -91,14 +91,9 @@ async function handleLogout() {
 }
 
 .brand__mark {
-  display: grid;
   width: 28px;
   height: 28px;
-  place-items: center;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  font-size: 11px;
+  flex: 0 0 28px;
 }
 
 .main-nav {
