@@ -9,6 +9,7 @@ const authStore = useAuthStore()
 const adminTabs = computed(() => [
   { label: 'Problems', to: '/admin/problems', visible: true },
   { label: 'Contests', to: '/admin/contests', visible: authStore.isSuperAdmin },
+  { label: 'Users', to: '/admin/users', visible: authStore.isSuperAdmin },
 ])
 </script>
 

@@ -105,6 +105,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/AdminContestEditView.vue'),
         meta: { requiresSuperAdmin: true },
       },
+      {
+        path: 'users',
+        name: 'admin-users',
+        component: () => import('@/views/admin/AdminUserManagementView.vue'),
+        meta: { requiresSuperAdmin: true },
+      },
     ],
   },
   {

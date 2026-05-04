@@ -3,6 +3,8 @@ export const API_ENDPOINTS = {
     login: '/auth/login',
     register: '/auth/register',
     logout: '/auth/logout',
+    user: '/auth/user',
+    adminUserRole: '/auth/admin/user/role',
   },
   problems: {
     list: '/problem',

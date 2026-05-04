@@ -489,21 +489,22 @@ function toggleTag(tag: string) {
 }
 
 .filter__btn {
-  padding: 5px 14px;
+  min-height: 36px;
+  padding: 0 16px;
   border-radius: var(--radius-sm);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
 }
 
 .filter__btn--primary {
-  border: 1px solid var(--color-focus);
-  background: var(--color-focus);
-  color: #ffffff;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-surface);
 }
 
 .filter__btn--primary:hover {
-  opacity: 0.9;
+  opacity: 0.88;
 }
 
 .filter__btn--secondary {

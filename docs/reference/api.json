@@ -276,6 +276,48 @@
         }
       }
     },
+    "/auth/admin/user/role": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "超级管理员修改用户角色",
+        "description": "修改指定用户角色。仅超级管理员可调用，且不能修改自己的角色。修改成功后会失效 user:role:{userId} 缓存。",
+        "operationId": "updateUserRole",
+        "requestBody": {
+          "description": "用户角色修改请求体",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRoleUpdateRequest"
+              },
+              "examples": {
+                "修改用户角色示例": {
+                  "description": "修改用户角色示例",
+                  "value": {
+                    "userId": 1001,
+                    "role": "admin"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/submit/judge": {
       "post": {
         "tags": [
@@ -853,6 +895,51 @@
         }
       }
     },
+    "/auth/user": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "查询公开用户信息",
+        "description": "通过 userId 或 username 查询公开用户信息，二者必须且只能传一个。接口不要求登录，返回 UserVO 但 email 固定为空。",
+        "operationId": "getPublicUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "用户 ID。与 username 二选一。",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1001
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "description": "用户名。与 userId 二选一。",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "alice_oj"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/me": {
       "get": {
         "tags": [
@@ -1167,6 +1254,32 @@
           "endTime",
           "name",
           "startTime"
+        ]
+      },
+      "UserRoleUpdateRequest": {
+        "type": "object",
+        "description": "用户角色修改请求",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "被修改角色的用户 ID",
+            "example": 1001
+          },
+          "role": {
+            "type": "string",
+            "description": "目标角色",
+            "enum": [
+              "user",
+              "admin",
+              "super_admin"
+            ],
+            "example": "admin"
+          }
+        },
+        "required": [
+          "role",
+          "userId"
         ]
       },
       "JudgeRequest": {

@@ -37,9 +37,17 @@ export interface RegisterResponse {
   id: number
 }
 
+export type PublicUserQuery =
+  | { userId: number; username?: never }
+  | { username: string; userId?: never }
+
+export interface UserRoleUpdateRequest {
+  userId: number
+  role: UserRole
+}
+
 export interface AuthSession {
   tokenName: string
   tokenValue: string
   userInfo: User
 }
-
