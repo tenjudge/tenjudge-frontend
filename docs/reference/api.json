@@ -79,27 +79,17 @@
           "Problem"
         ],
         "summary": "更新题目",
-        "description": "更新题目元数据和可选的题目 zip 包。若上传新文件，服务端会在更新过程中同步处理校验、对象存储切换和版本变更。",
+        "description": "通过 multipart/form-data 提交题目 id 和 zipFile 文件。若上传新文件，服务端会在更新过程中同步处理校验、对象存储切换和版本变更。",
         "operationId": "update",
-        "parameters": [
-          {
-            "name": "problemUpdateRequest",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ProblemUpdateRequest"
-            }
-          },
-          {
-            "name": "zipFile",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "binary"
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemUpdateRequest"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -118,19 +108,17 @@
           "Problem"
         ],
         "summary": "创建题目",
-        "description": "上传题目 zip 包并创建题目，服务端会校验题目文件结构、配置内容和相关业务约束。",
+        "description": "通过 multipart/form-data 上传 zipFile 文件并创建题目，服务端会校验题目文件结构、配置内容和相关业务约束。",
         "operationId": "create",
-        "parameters": [
-          {
-            "name": "zipFile",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "binary"
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemCreateRequest"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -865,6 +853,36 @@
         }
       }
     },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "查询当前用户信息",
+        "description": "根据当前 token 查询登录用户信息，不返回密码哈希。未登录返回 UNAUTHORIZED；登录态对应用户不存在时返回 USER_NOT_FOUND。",
+        "operationId": "getCurrentUser",
+        "parameters": [
+          {
+            "name": "tenjudge-token",
+            "in": "header",
+            "description": "登录接口返回的 tokenValue。若部署时修改了 tokenName，请以登录响应中的 tokenName 为准。",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/agent/problem/{id}": {
       "get": {
         "tags": [
@@ -891,6 +909,118 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ResultProblemVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/problem": {
+      "get": {
+        "tags": [
+          "Problem"
+        ],
+        "summary": "管理员分页查询题目列表",
+        "description": "管理员直接从数据库分页查询全部题目，返回 id、name、visibility，按 problemId 支持 asc/desc 排序，不使用 Redis 缓存。",
+        "operationId": "queryAdminPage",
+        "parameters": [
+          {
+            "name": "current",
+            "in": "query",
+            "description": "当前页码，从 1 开始",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "每页数量，最大 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 30
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "排序方向：asc 或 desc，按 problemId 排序",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAdminProblemPageVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/problem/mine": {
+      "get": {
+        "tags": [
+          "Problem"
+        ],
+        "summary": "管理员分页查询自己创建的题目列表",
+        "description": "管理员直接从数据库分页查询当前登录管理员创建的题目，返回 id、name、visibility，按 problemId 支持 asc/desc 排序，不使用 Redis 缓存。",
+        "operationId": "queryMyAdminPage",
+        "parameters": [
+          {
+            "name": "current",
+            "in": "query",
+            "description": "当前页码，从 1 开始",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "每页数量，最大 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 30
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "排序方向：asc 或 desc，按 problemId 排序",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAdminProblemPageVO"
                 }
               }
             }
@@ -933,10 +1063,18 @@
     "schemas": {
       "ProblemUpdateRequest": {
         "type": "object",
+        "description": "更新题目的 multipart/form-data 请求",
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "题目 ID",
+            "example": 1001
+          },
+          "zipFile": {
+            "type": "string",
+            "format": "binary",
+            "description": "题目 zip 文件"
           }
         }
       },
@@ -1095,6 +1233,17 @@
           "submissionId": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "ProblemCreateRequest": {
+        "type": "object",
+        "description": "创建题目的 multipart/form-data 请求",
+        "properties": {
+          "zipFile": {
+            "type": "string",
+            "format": "binary",
+            "description": "题目 zip 文件"
           }
         }
       },
@@ -2052,6 +2201,91 @@
           },
           "data": {
             "$ref": "#/components/schemas/BoardPageVO"
+          }
+        }
+      },
+      "ResultUserVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserVO"
+          }
+        }
+      },
+      "AdminProblemListItemVO": {
+        "type": "object",
+        "description": "管理员题目列表项",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "题目 ID",
+            "example": 1001
+          },
+          "name": {
+            "type": "string",
+            "description": "题目名称",
+            "example": "A + B Problem"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "题目可见性",
+            "example": "public"
+          }
+        }
+      },
+      "AdminProblemPageVO": {
+        "type": "object",
+        "description": "管理员题目分页列表",
+        "properties": {
+          "records": {
+            "type": "array",
+            "description": "当前页题目列表",
+            "items": {
+              "$ref": "#/components/schemas/AdminProblemListItemVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总记录数"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64",
+            "description": "当前页码"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "每页数量"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "description": "总页数"
+          }
+        }
+      },
+      "ResultAdminProblemPageVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminProblemPageVO"
           }
         }
       },

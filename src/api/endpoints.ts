@@ -6,6 +6,9 @@ export const API_ENDPOINTS = {
   },
   problems: {
     list: '/problem',
+    adminList: '/admin/problem',
+    adminMine: '/admin/problem/mine',
+    visibility: '/problem/visibility',
     detail: (id: number) => `/problem/${id}`,
   },
   contests: {

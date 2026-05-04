@@ -1,7 +1,14 @@
 import { API_ENDPOINTS } from '@/api/endpoints'
 import { http } from '@/api/client'
 import type { PageQuery, PageResult } from '@/types/common'
-import type { ContestBoardPage, ContestDetail, ContestListItem } from '@/types/contest'
+import type {
+  ContestBoardPage,
+  ContestDetail,
+  ContestListItem,
+  CreateContestRequest,
+  CreateContestResult,
+  UpdateContestRequest,
+} from '@/types/contest'
 import type { ProblemDetail } from '@/types/problem'
 
 export function getContestPage(query: PageQuery): Promise<PageResult<ContestListItem>> {
@@ -10,6 +17,14 @@ export function getContestPage(query: PageQuery): Promise<PageResult<ContestList
 
 export function getContestDetail(contestId: number): Promise<ContestDetail> {
   return http.get(API_ENDPOINTS.contests.detail(contestId))
+}
+
+export function createContest(payload: CreateContestRequest): Promise<CreateContestResult> {
+  return http.post(API_ENDPOINTS.contests.list, payload)
+}
+
+export function updateContest(payload: UpdateContestRequest): Promise<void> {
+  return http.put(API_ENDPOINTS.contests.list, payload)
 }
 
 export function getContestProblem(contestId: number, index: string): Promise<ProblemDetail> {

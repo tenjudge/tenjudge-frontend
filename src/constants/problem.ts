@@ -1,8 +1,15 @@
 export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard' | 'Unknown'
 
+export const PROBLEM_VISIBILITY = {
+  public: 'public',
+  private: 'private',
+} as const
+
+export type ProblemVisibility = (typeof PROBLEM_VISIBILITY)[keyof typeof PROBLEM_VISIBILITY]
+
 export const PROBLEM_VISIBILITY_LABELS: Record<string, string> = {
-  public: 'Public',
-  private: 'Private',
+  [PROBLEM_VISIBILITY.public]: 'Public',
+  [PROBLEM_VISIBILITY.private]: 'Private',
 }
 
 export const DIFFICULTY_COLORS: Record<string, string> = {
@@ -18,4 +25,3 @@ export function getDifficultyLabel(score: number): DifficultyLevel {
   if (score <= 2000) return 'Medium'
   return 'Hard'
 }
-

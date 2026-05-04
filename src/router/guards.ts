@@ -17,6 +17,18 @@ export function installRouterGuards(router: Router) {
       }
     }
 
+    if (to.meta.requiresAdmin && !authStore.isAdmin) {
+      return authStore.isAuthenticated
+        ? { name: 'contests' }
+        : { name: 'login', query: { redirect: to.fullPath } }
+    }
+
+    if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) {
+      return authStore.isAuthenticated
+        ? { name: 'admin-problems' }
+        : { name: 'login', query: { redirect: to.fullPath } }
+    }
+
     if (to.meta.guestOnly && authStore.isAuthenticated) {
       return { name: 'contests' }
     }
@@ -24,4 +36,3 @@ export function installRouterGuards(router: Router) {
     return true
   })
 }
-

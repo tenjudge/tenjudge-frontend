@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 
 import * as authApi from '@/api/auth'
 import { STORAGE_KEYS } from '@/config/storage'
+import { isAdminRole, isSuperAdminRole } from '@/constants/user'
 import type { AuthSession, LoginRequest, RegisterForm, User } from '@/types/auth'
 import { readJsonStorage, removeStorage, writeJsonStorage } from '@/utils/storage'
 
@@ -23,6 +24,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) => Boolean(state.tokenName && state.tokenValue),
     username: (state) => state.userInfo?.username ?? '',
+    isAdmin: (state) => isAdminRole(state.userInfo?.role),
+    isSuperAdmin: (state) => isSuperAdminRole(state.userInfo?.role),
   },
 
   actions: {

@@ -12,12 +12,13 @@ const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
 
-const navItems = [
+const navItems = computed(() => [
   { label: 'Contests', to: '/contests' },
   { label: 'Problems', to: '/problems' },
   { label: 'Submissions', to: '/submissions' },
   { label: 'Agent', to: '/agent' },
-]
+  ...(authStore.isAdmin ? [{ label: 'Admin', to: '/admin' }] : []),
+])
 
 const loginTarget = computed(() => ({
   path: '/auth/login',

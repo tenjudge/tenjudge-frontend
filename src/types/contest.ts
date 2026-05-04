@@ -24,6 +24,28 @@ export interface ContestDetail {
   problems: ContestProblemBrief[]
 }
 
+export interface CreateContestRequest {
+  name: string
+  startTime: string
+  endTime: string
+  freezeTime?: string
+  penaltyPerWrong?: number
+}
+
+export interface CreateContestResult {
+  id: number
+}
+
+export interface ContestProblemInput {
+  problemId: number
+  problemIndex: string
+}
+
+export interface UpdateContestRequest extends CreateContestRequest {
+  contestId: number
+  contestProblems?: ContestProblemInput[]
+}
+
 export interface ContestBoardProblem {
   problemId: number
   problemIndex: string

@@ -64,6 +64,50 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/submissions/SubmissionListView.vue'),
   },
   {
+    path: '/admin',
+    component: () => import('@/views/admin/AdminLayoutView.vue'),
+    meta: { requiresAdmin: true },
+    children: [
+      {
+        path: '',
+        redirect: { name: 'admin-problems' },
+      },
+      {
+        path: 'problems',
+        name: 'admin-problems',
+        component: () => import('@/views/admin/AdminProblemListView.vue'),
+      },
+      {
+        path: 'problems/new',
+        name: 'admin-problem-new',
+        component: () => import('@/views/admin/AdminProblemUploadView.vue'),
+      },
+      {
+        path: 'problems/:problemId/edit',
+        name: 'admin-problem-edit',
+        component: () => import('@/views/admin/AdminProblemUploadView.vue'),
+      },
+      {
+        path: 'contests',
+        name: 'admin-contests',
+        component: () => import('@/views/admin/AdminContestListView.vue'),
+        meta: { requiresSuperAdmin: true },
+      },
+      {
+        path: 'contests/new',
+        name: 'admin-contest-new',
+        component: () => import('@/views/admin/AdminContestEditView.vue'),
+        meta: { requiresSuperAdmin: true },
+      },
+      {
+        path: 'contests/:contestId/edit',
+        name: 'admin-contest-edit',
+        component: () => import('@/views/admin/AdminContestEditView.vue'),
+        meta: { requiresSuperAdmin: true },
+      },
+    ],
+  },
+  {
     path: '/agent',
     name: 'agent',
     component: () => import('@/views/agent/AgentPlaceholderView.vue'),
@@ -73,4 +117,3 @@ export const routes: RouteRecordRaw[] = [
     redirect: '/contests',
   },
 ]
-
