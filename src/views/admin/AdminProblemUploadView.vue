@@ -191,25 +191,73 @@ async function handleSubmit() {
     </section>
 
     <form class="panel upload-form" @submit.prevent="handleSubmit">
-      <label class="file-field" for="problem-zip">
+      <div class="file-field">
         <span class="file-field__label">Problem zip file</span>
-        <input
-          id="problem-zip"
-          class="file-field__control"
-          type="file"
-          accept=".zip,application/zip,application/x-zip-compressed"
-          required
-          @change="handleFileChange"
-        />
-      </label>
+        <span class="file-picker">
+          <input
+            id="problem-zip"
+            class="file-field__control"
+            type="file"
+            accept=".zip,application/zip,application/x-zip-compressed"
+            required
+            @change="handleFileChange"
+          />
+          <label class="file-picker__button" for="problem-zip">
+            Choose File
+          </label>
+          <span class="file-picker__name">{{ selectedFile?.name || 'No file chosen' }}</span>
+        </span>
+      </div>
 
       <div class="upload-form__actions">
-        <BaseButton type="submit" :loading="loading">
+        <BaseButton type="submit" size="small" :loading="loading">
           {{ isEditMode ? 'Update Problem' : 'Create Problem' }}
         </BaseButton>
         <RouterLink class="admin-link" to="/admin/problems">Cancel</RouterLink>
       </div>
     </form>
+
+    <section class="panel package-guide" aria-labelledby="problem-package-title">
+      <div>
+        <h3 id="problem-package-title" class="section-title">Problem Package Format</h3>
+        <p class="guide-copy">
+          Upload a zip package with these files at the zip root. Do not wrap them in an extra folder.
+        </p>
+      </div>
+
+      <div class="guide-block">
+        <h4 class="guide-block__title">Zip contents</h4>
+        <pre class="guide-code"><code>config.yaml
+statement.md
+solution.md      optional
+checker.cpp      required for special checker
+input/
+  1.in
+  2.in
+answer/
+  1.ans
+  2.ans</code></pre>
+      </div>
+
+      <div class="guide-block">
+        <h4 class="guide-block__title">config.yaml</h4>
+        <pre class="guide-code"><code>name: "Two Sum Problem"
+time_limit: 1500
+memory_limit: 256
+checker: "wcmp"
+difficulty: 1600
+tags:
+  - "sort"
+  - "hash"</code></pre>
+      </div>
+
+      <ul class="guide-list">
+        <li><code>config.yaml</code> must use <code>.yaml</code>, not <code>.yml</code>.</li>
+        <li><code>statement.md</code> currently does not support images.</li>
+        <li>Test files must start from <code>1.in</code> and <code>1.ans</code>, then stay continuous.</li>
+        <li>Each <code>input/i.in</code> must have a matching <code>answer/i.ans</code>; missing either side is invalid.</li>
+      </ul>
+    </section>
   </section>
 </template>
 
@@ -267,7 +315,8 @@ async function handleSubmit() {
 }
 
 .upload-form,
-.visibility-panel {
+.visibility-panel,
+.package-guide {
   display: grid;
   gap: 18px;
   max-width: 640px;
@@ -294,7 +343,6 @@ async function handleSubmit() {
   font-weight: 650;
 }
 
-.file-field__control,
 .select-field__control {
   width: 100%;
   padding: 11px 12px;
@@ -308,11 +356,55 @@ async function handleSubmit() {
   min-height: 42px;
 }
 
-.file-field__control:focus,
 .select-field__control:focus {
   border-color: var(--color-focus);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
   outline: none;
+}
+
+.file-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+}
+
+.file-picker__button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.file-picker__name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-field__control {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.file-field__control:focus-visible + .file-picker__button {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .upload-form__actions,
@@ -320,6 +412,57 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.guide-copy {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.guide-block {
+  display: grid;
+  gap: 8px;
+}
+
+.guide-block__title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.guide-code {
+  overflow-x: auto;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background-muted);
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.guide-code code,
+.guide-list code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.guide-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.guide-list code {
+  color: var(--color-text);
+  font-size: 0.95em;
 }
 
 @media (max-width: 680px) {
