@@ -10,9 +10,11 @@ import { toAppError } from '@/utils/error'
 
 interface ProblemRow {
   key: number
-  problemId: string
+  problemId: NumericInputValue
   problemIndex: string
 }
+
+type NumericInputValue = string | number
 
 const route = useRoute()
 const router = useRouter()
@@ -27,7 +29,7 @@ const name = ref('')
 const startTime = ref('')
 const endTime = ref('')
 const freezeTime = ref('')
-const penaltyPerWrong = ref('')
+const penaltyPerWrong = ref<NumericInputValue>('')
 const problemRows = ref<ProblemRow[]>([])
 let nextProblemRowKey = 1
 
@@ -108,6 +110,10 @@ function toApiDateTime(value: string) {
   return value.length === 16 ? `${value}:00` : value
 }
 
+function normalizeInputValue(value: NumericInputValue) {
+  return String(value).trim()
+}
+
 function addProblemRow() {
   problemRows.value.push({
     key: nextProblemRowKey++,
@@ -121,13 +127,13 @@ function removeProblemRow(key: number) {
 }
 
 function buildContestProblems(): ContestProblemInput[] | null {
-  const rows = problemRows.value.filter((row) => row.problemId.trim() || row.problemIndex.trim())
+  const rows = problemRows.value.filter((row) => normalizeInputValue(row.problemId) || row.problemIndex.trim())
   const seenIds = new Set<number>()
   const seenIndexes = new Set<string>()
   const result: ContestProblemInput[] = []
 
   for (const row of rows) {
-    const problemId = Number(row.problemId)
+    const problemId = Number(normalizeInputValue(row.problemId))
     const problemIndex = row.problemIndex.trim()
 
     if (!Number.isInteger(problemId) || problemId <= 0 || !problemIndex) {
@@ -156,7 +162,7 @@ async function handleSubmit() {
     return
   }
 
-  const penalty = penaltyPerWrong.value.trim()
+  const penalty = normalizeInputValue(penaltyPerWrong.value)
   const penaltyValue = penalty === '' ? undefined : Number(penalty)
 
   if (penaltyValue !== undefined && (!Number.isInteger(penaltyValue) || penaltyValue < 0)) {
