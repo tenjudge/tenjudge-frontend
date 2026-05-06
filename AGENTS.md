@@ -118,6 +118,7 @@
 - 如果文档结构变得臃肿，可以适时重组；必要时再拆分到独立文档。
 - 当用户要求提交所有文件时，应提交当前工作区内所有未被 `.gitignore` 忽略的变更；除非用户明确要求排除某些文件，否则不要自行排除已修改文件。
 - Git 提交信息沿用现有风格：`type: 中文动宾短句`，常用 type 包含 `feat`、`fix`、`docs`、`chore`。
+- GitHub Actions 发布前端 Docker 镜像时仅在 `main` 分支 push 且最新 commit message 包含 `[docker-publish]` 时执行；镜像发布到 `ghcr.io/tenjudge/tenjudge-frontend:latest`，同时构建 `linux/amd64` 和 `linux/arm64`。
 
 ## 7. 当前待办
 
