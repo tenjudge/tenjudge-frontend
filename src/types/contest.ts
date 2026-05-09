@@ -55,6 +55,7 @@ export interface ContestProblemResult {
   accepted: boolean
   acceptedAt: number
   wrongAttemptsBeforeAc: number
+  attemptsAfterFreeze?: number
 }
 
 export interface ContestBoardListItem {

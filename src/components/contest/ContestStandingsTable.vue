@@ -15,8 +15,16 @@ function resultFor(row: ContestBoardListItem, problem: ContestBoardProblem) {
   return row.problemResults?.[String(problem.problemId)]
 }
 
+function getFrozenAttempts(result: ContestProblemResult | undefined) {
+  const attempts = result?.attemptsAfterFreeze
+  return typeof attempts === 'number' && Number.isFinite(attempts) && attempts > 0
+    ? Math.floor(attempts)
+    : 0
+}
+
 function getCellClass(result: ContestProblemResult | undefined) {
   if (!result) return ''
+  if (getFrozenAttempts(result) > 0) return 'is-frozen'
   if (result.accepted) return 'is-accepted'
   if (result.wrongAttemptsBeforeAc > 0) return 'is-rejected'
   return ''
@@ -25,12 +33,21 @@ function getCellClass(result: ContestProblemResult | undefined) {
 function getCellText(result: ContestProblemResult | undefined) {
   if (!result) return ''
 
+  const frozenAttempts = getFrozenAttempts(result)
+  if (frozenAttempts > 0) {
+    return `?${frozenAttempts}`
+  }
+
   const wrongAttempts = result.wrongAttemptsBeforeAc
   if (result.accepted) {
     return wrongAttempts > 0 ? `+${wrongAttempts}` : '+'
   }
 
   return wrongAttempts > 0 ? `-${wrongAttempts}` : ''
+}
+
+function shouldShowAcceptedAt(result: ContestProblemResult | undefined) {
+  return Boolean(result?.accepted && getFrozenAttempts(result) === 0)
 }
 
 function formatAcceptedAt(minutes: number) {
@@ -104,7 +121,7 @@ function formatAcceptedAt(minutes: number) {
               {{ getCellText(resultFor(row, problem)) }}
             </span>
             <span
-              v-if="resultFor(row, problem)?.accepted"
+              v-if="shouldShowAcceptedAt(resultFor(row, problem))"
               class="standings-table__accepted-time"
             >
               {{ formatAcceptedAt(resultFor(row, problem)!.acceptedAt) }}
@@ -253,5 +270,10 @@ function formatAcceptedAt(minutes: number) {
 .standings-table__problem-cell.is-rejected {
   background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
   color: var(--color-danger);
+}
+
+.standings-table__problem-cell.is-frozen {
+  background: color-mix(in srgb, var(--color-focus) 12%, var(--color-surface));
+  color: var(--color-focus);
 }
 </style>
