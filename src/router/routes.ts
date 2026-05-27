@@ -117,6 +117,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/agent',
     name: 'agent',
     component: () => import('@/views/agent/AgentPlaceholderView.vue'),
+    meta: { requiresAuth: true, fullscreen: true },
   },
   {
     path: '/:pathMatch(.*)*',

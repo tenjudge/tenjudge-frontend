@@ -13,11 +13,11 @@ const authStore = useAuthStore()
 const toast = useToast()
 
 const navItems = computed(() => [
-  { label: 'Contests', to: '/contests' },
-  { label: 'Problems', to: '/problems' },
-  { label: 'Submissions', to: '/submissions' },
-  { label: 'Agent', to: '/agent' },
-  ...(authStore.isAdmin ? [{ label: 'Admin', to: '/admin' }] : []),
+  { label: 'Contests', key: 'contests', to: '/contests' },
+  { label: 'Problems', key: 'problems', to: '/problems' },
+  { label: 'Submissions', key: 'submissions', to: '/submissions' },
+  { label: 'Agent', key: 'agent', to: { path: '/agent', query: { redirect: route.fullPath } } },
+  ...(authStore.isAdmin ? [{ label: 'Admin', key: 'admin', to: '/admin' }] : []),
 ])
 
 const loginTarget = computed(() => ({
@@ -46,7 +46,7 @@ async function handleLogout() {
     <nav class="main-nav" aria-label="Main navigation">
       <RouterLink
         v-for="item in navItems"
-        :key="item.to"
+        :key="item.key"
         class="main-nav__link"
         active-class="main-nav__link--active"
         :to="item.to"

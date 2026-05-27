@@ -99,3 +99,78 @@
   color: var(--color-danger);
   font-size: 14px;
 }
+
+.markdown-code-block {
+  --markdown-code-x: 12px;
+  overflow: hidden;
+  margin: 0 0 0.9em;
+  border: 0;
+  border-radius: 12px;
+  background: #f7f7f8;
+}
+
+.markdown-code-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+  padding: 5px var(--markdown-code-x) 3px;
+  background: #f7f7f8;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.markdown-code-block__title {
+  display: inline-flex;
+  align-items: center;
+}
+
+.markdown-code-block__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #111827;
+  cursor: pointer;
+}
+
+.markdown-code-block__copy:hover {
+  background: #eceef2;
+}
+
+.markdown-code-block__copy svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.markdown-code-block__copy[data-copied='true'] {
+  color: var(--color-success);
+}
+
+.markdown-code-block pre {
+  margin: 0;
+  padding: 3px var(--markdown-code-x) 8px;
+  overflow-x: auto;
+  background: #f7f7f8;
+  line-height: 1.45;
+}
+
+.markdown-code-block code,
+.markdown-code-block .hljs {
+  background: transparent;
+  font-size: 12px;
+}

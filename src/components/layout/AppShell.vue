@@ -1,17 +1,24 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ToastProvider from '@/components/feedback/ToastProvider.vue'
+
+const route = useRoute()
+
+const isFullscreen = computed(() => Boolean(route.meta.fullscreen))
 </script>
 
 <template>
-  <div class="app-shell">
-    <AppHeader />
+  <div class="app-shell" :class="{ 'app-shell--fullscreen': isFullscreen }">
+    <AppHeader v-if="!isFullscreen" />
 
     <main class="app-main">
       <RouterView />
     </main>
 
-    <footer class="app-footer">© 2026 <span>TenJudge.</span> All rights reserved.</footer>
+    <footer v-if="!isFullscreen" class="app-footer">© 2026 <span>TenJudge.</span> All rights reserved.</footer>
     <ToastProvider />
   </div>
 </template>
@@ -26,6 +33,23 @@ import ToastProvider from '@/components/feedback/ToastProvider.vue'
 
 .app-main {
   padding: 28px 0 36px;
+}
+
+.app-shell--fullscreen {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: 0;
+  overscroll-behavior: none;
+}
+
+.app-shell--fullscreen .app-main {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  overscroll-behavior: none;
 }
 
 .app-footer {

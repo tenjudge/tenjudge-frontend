@@ -57,6 +57,17 @@ async function handleSubmit(language: SubmitLanguage, code: string) {
     submitLoading.value = false
   }
 }
+
+function askAgent() {
+  if (!problem.value) return
+  router.push({
+    name: 'agent',
+    query: {
+      redirect: route.fullPath,
+      attach: `problem:${problem.value.id}`,
+    },
+  })
+}
 </script>
 
 <template>
@@ -93,6 +104,9 @@ async function handleSubmit(language: SubmitLanguage, code: string) {
       </div>
 
       <aside v-if="problem" class="problem-aside">
+        <button class="ask-agent-button" type="button" @click="askAgent">
+          Ask Agent
+        </button>
         <ProblemMeta
           :difficulty="problem.difficulty"
           :tags="problem.tags"
@@ -139,6 +153,16 @@ async function handleSubmit(language: SubmitLanguage, code: string) {
   grid-area: aside;
   display: grid;
   gap: 22px;
+}
+
+.ask-agent-button {
+  min-height: 38px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .loading-area {

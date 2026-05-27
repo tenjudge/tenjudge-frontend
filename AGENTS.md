@@ -37,7 +37,13 @@
 - 比赛详情页采用左右两栏布局：左侧为内容区（副导航 + 标签内容），右侧为比赛信息卡片（名称、状态、时间、罚时）。
 - 比赛报名/取消报名操作不在列表页直接进行，需点击进入独立报名页面 `/contests/:contestId/register` 后确认操作，防止误触。
 - 比赛未开始时后端返回 CONTEST_NOT_STARTED 错误，前端展示提示信息而非题目列表。
-- Agent 智能体模块：先预留模块；问答交互、题目引用、提交记录引用等具体设计暂缓。
+- Agent 智能体模块进入前端设计与开发阶段；接口细节以 `docs/reference/agent_api.json` 为准。
+- Agent 页面采用类似 ChatGPT 的完整聊天界面，不沿用主站普通内容页布局；页面需要提供返回原主站界面的入口。
+- Agent 页面需要提供当前用户会话历史列表。
+- Agent 聊天附件支持三类：原始代码文本、题目引用、提交记录引用。代码附件由用户复制到代码输入框，不作为文件上传。
+- 题目详情页和提交详情页可提供跳转到 Agent 聊天并携带对应附件的入口；正在比赛中的题目页暂不添加该入口。
+- Agent 历史消息需要支持从指定历史轮次重新开始对话，前端通过聊天请求中的 `turn_index` 实现。
+- Agent `progress` 事件穿插在回复中时，连续 progress 在同一行拼接展示；遇到正常回复内容后，该 progress 行固定在对应位置。
 - 后台管理系统：方向是管理题目、比赛、用户等；普通管理员能力先聚焦题目管理，超级管理员额外管理比赛和用户。
 - 管理区主导航入口文案为 `Admin`，仅 `admin` 和 `super_admin` 可见；`/admin` 默认进入 `/admin/problems`。
 - 管理区使用独立副导航；当前包含 `Problems`、`Contests` 和 `Users`，后续可扩展用户管理等模块。
@@ -59,6 +65,7 @@
 - 设计目标：让用户专注于比赛、看题、提交代码和查看结果。
 - 在保证美观和可用性的前提下，不添加额外花哨装饰。
 - 不使用第三方 UI 组件库；通用 UI 组件由项目内自行封装和维护。
+- Agent 模块允许引入 `ai-elements-vue`、`shadcn-vue` 和 Tailwind CSS；`ai-elements-vue` 基于 `shadcn-vue` registry，组件会以源码形式写入项目，接入时需要控制影响范围，避免改动扩散到非 Agent 模块。
 - 开发新界面或组件时，需要优先判断是否存在跨模块复用场景；按钮、表单控件、导航、状态展示等常见元素应抽象为可复用组件，避免在多个模块重复实现。
 - 业务关键点和特殊代码逻辑需要添加必要注释，尤其是后续协作者不容易从代码本身直接理解的权限判断、比赛状态判断、提交 / 测评流程、Agent 特殊逻辑、接口兼容处理等。
 - 操作反馈使用右下角小弹窗展示，弹窗至少包含成功和失败两种模式。
@@ -111,6 +118,15 @@
 - 比赛详情页 Submissions 标签默认展示当前登录用户在本场比赛中的提交；当 URL 包含 `?tab=submissions&userId=` 时展示指定用户提交，并提供返回当前登录用户提交的小按钮。
 - 比赛榜单视觉使用克制状态色：通过为浅绿色，错误未通过为浅红色，未提交为白底。
 - 当前 API 文档包含注册、登录、登出、题目列表 / 详情 / 创建 / 更新 / 可见性修改、比赛列表 / 详情 / 创建 / 更新 / 报名 / 取消报名、比赛内按题号查询题目、比赛榜单、Agent 按题目 ID 查询题目、提交代码测评、提交详情查询（含源码和测试点）、用户提交分页列表、比赛内用户提交列表等能力。
+- Agent API 文档为 `docs/reference/agent_api.json`，当前包含创建聊天任务、订阅任务 SSE 事件流、会话列表和会话详情接口；文档路径不包含 `/agent` 前缀。
+- Agent API 与主站 Spring Boot API 使用不同 baseURL：开发环境请求 `http://localhost:8000` 且不加 `/agent` 前缀；生产环境请求 `/agent-api` 前缀。
+- Agent API 鉴权请求头固定使用 `tenjudge-token`，值使用登录返回的 `tokenValue`。
+- Agent 聊天采用异步任务模型：`POST /chat` 创建任务并返回 `conversation_id`、`task_id`，前端随后订阅 `GET /chat/{task_id}/events` 接收事件流。
+- Agent SSE 事件名包含 `progress`、`message`、`title`、`failed` 和 `done`，事件 `data` 始终为普通字符串；收到 `done` 表示当前任务事件流结束。
+- Agent 会话列表接口使用不透明 cursor 做无限滚动；前端不解析 cursor，只把响应中的 `next_cursor` 原样用于下一页请求。
+- Agent 会话详情在 `status` 为 `running` 时可能返回 `running_task_id`，前端可据此继续订阅未完成任务。
+- Agent 聊天请求的 `attachments` 支持 `code`、`problem`、`submission` 三种 discriminator 类型，分别提交代码文本、题目 ID 或提交 ID。
+- Agent API 当前通过 `tenjudge-token` 请求头接收 TenJudge 鉴权 token；SSE 若需要自定义请求头，前端不能直接依赖浏览器原生 `EventSource`，需使用支持自定义 header 的实现或基于 `fetch` 解析事件流。
 - 后续根据 Swagger API 文档进行前端开发时，需要结合 Online Judge 常见业务场景主动识别潜在接口缺口；如果某个前端功能可能需要但 API 中暂未提供，应先与用户沟通确认，确认需要后再进行前端预留或适配设计。
 - 当前 API 文档暂未看到测评状态轮询、用户资料更新等常见前端能力；涉及对应页面时需要先与用户确认接口计划。
 ## 6. 协作约定

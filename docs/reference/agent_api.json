@@ -1,0 +1,776 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/chat": {
+      "post": {
+        "tags": [
+          "Agent Chat"
+        ],
+        "summary": "Submit an agent chat turn",
+        "description": "为一轮对话创建异步智能体任务并立即返回。客户端随后应订阅 GET /chat/{task_id}/events，接收进度和回答片段。创建新会话时不传 conversation_id；继续已有会话时传 conversation_id；如果要从历史轮次重新开始，传 conversation_id 和 turn_index。",
+        "operationId": "chat_chat_post",
+        "parameters": [
+          {
+            "name": "tenjudge-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "TenJudge 鉴权 token。",
+              "title": "Tenjudge-Token"
+            },
+            "description": "TenJudge 鉴权 token。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result_ChatResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/{task_id}/events": {
+      "get": {
+        "tags": [
+          "Agent Chat"
+        ],
+        "summary": "Subscribe to agent task events",
+        "description": "订阅某个智能体任务的 Server-Sent Events 事件流。事件流会把 Redis Stream ID 作为 SSE id 返回。支持的事件名为 progress、message、title、failed 和 done。data 字段始终是普通字符串。断线重连时可传 Last-Event-ID，值必须是此前从该事件流收到过的 SSE id。没有新事件时，服务端会发送 ': ping' 注释作为心跳。收到 done 事件表示任务事件流结束，连接随后关闭。鉴权失败、任务不属于当前用户、任务不存在、事件流过期等错误会在开始流式返回前以统一 JSON 响应返回。",
+        "operationId": "chat_events_chat__task_id__events_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "POST /chat 返回的异步智能体任务 ID。",
+              "title": "Task Id"
+            },
+            "description": "POST /chat 返回的异步智能体任务 ID。"
+          },
+          {
+            "name": "tenjudge-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "TenJudge 鉴权 token。",
+              "title": "Tenjudge-Token"
+            },
+            "description": "TenJudge 鉴权 token。"
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "最后收到的事件的 SSE id，用于断线重连后续接事件流。",
+              "title": "Last-Event-Id"
+            },
+            "description": "最后收到的事件的 SSE id，用于断线重连后续接事件流。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE 事件流。每个事件包含 id、event 和 data 行。",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "example": "id: 1-0\nevent: progress\ndata: Thinking\n\nid: 2-0\nevent: message\ndata: Hello\n\nid: 3-0\nevent: done\ndata: \n\n"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations": {
+      "get": {
+        "tags": [
+          "Agent Conversations"
+        ],
+        "summary": "List current user's conversations",
+        "description": "用于左侧无限滚动会话列表，返回当前 TenJudge 用户自己的会话。结果按更新时间倒序排列。首次请求不传 cursor；当响应中的 next_cursor 不为 null 时，前端在下一页请求中原样作为 cursor 传回。cursor 是不透明字符串，前端不需要也不应该解析。",
+        "operationId": "list_conversations_conversations_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "本次最多返回的会话数量。默认 20，最大 100。",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "本次最多返回的会话数量。默认 20，最大 100。"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "上一页响应 next_cursor 返回的不透明游标。首次请求不传。",
+              "title": "Cursor"
+            },
+            "description": "上一页响应 next_cursor 返回的不透明游标。首次请求不传。"
+          },
+          {
+            "name": "tenjudge-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "TenJudge 鉴权 token。",
+              "title": "Tenjudge-Token"
+            },
+            "description": "TenJudge 鉴权 token。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result_ConversationListResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations/{conversation_id}": {
+      "get": {
+        "tags": [
+          "Agent Conversations"
+        ],
+        "summary": "Get conversation detail",
+        "description": "查询当前用户某个会话的详情和完整历史消息。如果会话状态为 running，响应会尽量返回当前轮的 running_task_id，前端可以使用该任务 ID 订阅 GET /chat/{task_id}/events 继续接收事件流。attachments 会按数据库中保存的内容原样返回。",
+        "operationId": "get_conversation_detail_conversations__conversation_id__get",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "要查询的会话 ID。",
+              "title": "Conversation Id"
+            },
+            "description": "要查询的会话 ID。"
+          },
+          {
+            "name": "tenjudge-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "TenJudge 鉴权 token。",
+              "title": "Tenjudge-Token"
+            },
+            "description": "TenJudge 鉴权 token。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result_ConversationDetailResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatRequest": {
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id",
+            "description": "已有会话 ID。不传表示创建新会话。"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message",
+            "description": "本轮用户消息。"
+          },
+          "turn_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Index",
+            "description": "已有会话的可选重启轮次。传入后，后端会先删除该轮及之后的消息和任务，再创建新的当前轮。"
+          },
+          "attachments": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/CodeAttachment"
+                },
+                {
+                  "$ref": "#/components/schemas/SubmissionAttachment"
+                },
+                {
+                  "$ref": "#/components/schemas/ProblemAttachment"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "code": "#/components/schemas/CodeAttachment",
+                  "problem": "#/components/schemas/ProblemAttachment",
+                  "submission": "#/components/schemas/SubmissionAttachment"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Attachments",
+            "description": "本轮可选附件，支持题目、提交记录或原始代码。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatRequest"
+      },
+      "ChatResponse": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id",
+            "description": "会话 ID，后续继续对话时传入。"
+          },
+          "task_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Task Id",
+            "description": "异步智能体任务 ID，用于订阅 SSE 事件流。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "task_id"
+        ],
+        "title": "ChatResponse"
+      },
+      "CodeAttachment": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "code",
+            "title": "Type",
+            "description": "附件类型。"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Content",
+            "description": "源代码文本。后端会统一规范化换行符。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "content"
+        ],
+        "title": "CodeAttachment"
+      },
+      "ConversationDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "会话 ID。"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "生成的会话标题。null 表示标题尚未生成或不可用。"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "finished",
+              "running"
+            ],
+            "title": "Status",
+            "description": "会话状态。running 表示当前仍有智能体任务在执行。"
+          },
+          "running_task_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running Task Id",
+            "description": "当前正在运行的任务 ID。仅当 status 为 running 且任务存在时返回，否则为 null。"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationMessageItem"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "会话历史消息，按轮次升序排列，同一轮中用户消息在智能体消息之前。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "messages"
+        ],
+        "title": "ConversationDetailResponse"
+      },
+      "ConversationListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "会话 ID。继续该会话时作为 conversation_id 传入。"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "生成的会话标题。null 表示标题尚未生成或不可用。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "ConversationListItem"
+      },
+      "ConversationListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationListItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前用户的会话列表，按更新时间倒序排列。"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor",
+            "description": "下一页游标。null 表示没有更多会话。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ConversationListResponse"
+      },
+      "ConversationMessageItem": {
+        "properties": {
+          "turn_index": {
+            "type": "integer",
+            "title": "Turn Index",
+            "description": "消息所属的会话轮次，从 1 开始。"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "agent"
+            ],
+            "title": "Role",
+            "description": "消息角色。user 表示用户消息，agent 表示智能体消息。"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "消息正文。"
+          },
+          "attachments": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Attachments",
+            "description": "用户消息附件。智能体消息通常为空数组。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "turn_index",
+          "role",
+          "content",
+          "attachments"
+        ],
+        "title": "ConversationMessageItem"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ProblemAttachment": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "problem",
+            "title": "Type",
+            "description": "附件类型。"
+          },
+          "problem_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Problem Id",
+            "description": "要附加的 TenJudge 题目 ID。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "problem_id"
+        ],
+        "title": "ProblemAttachment"
+      },
+      "Result_ChatResponse_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "Result[ChatResponse]"
+      },
+      "Result_ConversationDetailResponse_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationDetailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "Result[ConversationDetailResponse]"
+      },
+      "Result_ConversationListResponse_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationListResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "Result[ConversationListResponse]"
+      },
+      "SubmissionAttachment": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "submission",
+            "title": "Type",
+            "description": "附件类型。"
+          },
+          "submission_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Submission Id",
+            "description": "要附加的 TenJudge 提交 ID。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "submission_id"
+        ],
+        "title": "SubmissionAttachment"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

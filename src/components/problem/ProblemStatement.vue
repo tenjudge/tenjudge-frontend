@@ -172,6 +172,18 @@ const renderedHtml = computed(() => {
   overflow-x: auto;
 }
 
+.statement-content :deep(.markdown-code-block pre) {
+  padding: 3px var(--markdown-code-x) 8px;
+  border: 0;
+  border-radius: 0;
+  background: #f7f7f8;
+  line-height: 1.45;
+}
+
+.statement-content :deep(.markdown-code-block code) {
+  font-size: 12px;
+}
+
 .statement-content :deep(pre code) {
   padding: 0;
   background: none;

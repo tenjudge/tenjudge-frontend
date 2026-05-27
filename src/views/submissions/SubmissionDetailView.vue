@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import hljs from 'highlight.js/lib/core'
 import cpp from 'highlight.js/lib/languages/cpp'
 import python from 'highlight.js/lib/languages/python'
-import 'highlight.js/styles/github.css'
 
 import { getSubmissionDetail } from '@/api/submissions'
 import { getSubmissionStatusLabel, SUBMISSION_STATUS_COLORS } from '@/constants/submission'
@@ -45,6 +44,17 @@ function goBack() {
   router.back()
 }
 
+function askAgent() {
+  if (!submission.value) return
+  router.push({
+    name: 'agent',
+    query: {
+      redirect: route.fullPath,
+      attach: `submission:${submission.value.id}`,
+    },
+  })
+}
+
 onMounted(() => {
   void loadSubmission()
 })
@@ -74,9 +84,14 @@ const loadingRows = Array.from({ length: 3 }, (_, i) => i)
         <button class="back-link" type="button" @click="goBack">
           ← Back
         </button>
-        <h1 v-if="submission" id="submission-detail-title" class="page-title">
-          Submission #{{ submission.id }}
-        </h1>
+        <div class="submission-header-row">
+          <h1 v-if="submission" id="submission-detail-title" class="page-title">
+            Submission #{{ submission.id }}
+          </h1>
+          <button v-if="submission" class="ask-agent-button" type="button" @click="askAgent">
+            Ask Agent
+          </button>
+        </div>
       </header>
 
       <!-- Loading skeleton -->
@@ -226,6 +241,29 @@ const loadingRows = Array.from({ length: 3 }, (_, i) => i)
 
 .back-link:hover {
   color: var(--color-text);
+}
+
+.submission-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.submission-header-row .page-title {
+  margin: 0;
+}
+
+.ask-agent-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 /* Sections */
