@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { renderMarkdown } from '@/utils/markdown'
+import { renderMarkdownPlain } from '@/utils/markdown'
 
 const props = defineProps<{
   statement: string
@@ -28,7 +28,7 @@ const renderedHtml = computed(() => {
   const source = activeTab.value === 'solution' && props.solution
     ? props.solution
     : props.statement
-  return renderMarkdown(source)
+  return renderMarkdownPlain(source)
 })
 </script>
 
@@ -170,18 +170,6 @@ const renderedHtml = computed(() => {
   border-radius: var(--radius-sm);
   background: var(--color-background-muted);
   overflow-x: auto;
-}
-
-.statement-content :deep(.markdown-code-block pre) {
-  padding: 3px var(--markdown-code-x) 8px;
-  border: 0;
-  border-radius: 0;
-  background: #f7f7f8;
-  line-height: 1.45;
-}
-
-.statement-content :deep(.markdown-code-block code) {
-  font-size: 12px;
 }
 
 .statement-content :deep(pre code) {

@@ -3,8 +3,10 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
+  CopyIcon,
   ClipboardListIcon,
   Code2Icon,
+  PencilIcon,
   FileTextIcon,
   Loader2Icon,
   MessageSquareIcon,
@@ -261,16 +263,14 @@ function copyAttachments(items: AgentAttachment[]): AgentAttachment[] {
   return items.map((item) => ({ ...item }))
 }
 
-function prepareRestart(message: AgentChatMessage) {
+function editUserMessage(message: AgentChatMessage) {
+  if (message.role !== 'user' || sending.value || streaming.value) return
+
   input.value = message.content
   pendingAttachments.value = copyAttachments(message.attachments)
   restartTurnIndex.value = message.turnIndex
   void nextTick(adjustInputHeight)
   void scrollToBottom()
-}
-
-function cancelRestart() {
-  restartTurnIndex.value = null
 }
 
 function addCodeAttachment() {
@@ -316,9 +316,18 @@ async function handleSend() {
   const messageText = input.value.trim()
   if (!messageText || sending.value || streaming.value) return
 
-  const restartIndex = restartTurnIndex.value
-  const turnIndex = restartIndex ?? nextTurnIndex()
   const attachments = copyAttachments(pendingAttachments.value)
+  await submitChatTurn(messageText, attachments, restartTurnIndex.value)
+}
+
+async function submitChatTurn(
+  messageText: string,
+  attachments: AgentAttachment[],
+  restartIndex: number | null,
+) {
+  if (sending.value || streaming.value) return
+
+  const turnIndex = restartIndex ?? nextTurnIndex()
 
   if (restartIndex !== null) {
     trimMessagesForRestart(restartIndex)
@@ -370,6 +379,42 @@ async function handleSend() {
     sending.value = false
     streaming.value = false
   }
+}
+
+async function copyMessageText(message: AgentChatMessage) {
+  const text = message.content.trim()
+  if (!text) {
+    toast.error('Nothing to copy.')
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success('Copied to clipboard.')
+  } catch {
+    toast.error('Unable to copy message.')
+  }
+}
+
+async function retryMessage(message: AgentChatMessage) {
+  if (message.streaming || sending.value || streaming.value) return
+
+  const userMessage = message.role === 'user'
+    ? message
+    : messages.value.find((item) => (
+        item.role === 'user' && item.turnIndex === message.turnIndex
+      ))
+
+  if (!userMessage) {
+    toast.error('Unable to find the previous message.')
+    return
+  }
+
+  await submitChatTurn(
+    userMessage.content,
+    copyAttachments(userMessage.attachments),
+    userMessage.turnIndex,
+  )
 }
 
 function ensureStreamingAgentMessage(): AgentChatMessage {
@@ -512,6 +557,15 @@ function renderContent(content: string) {
 function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
   return segments ?? []
 }
+
+function isProgressSegmentActive(
+  message: AgentChatMessage,
+  segments: AgentMessageSegment[],
+  index: number,
+) {
+  if (!message.streaming) return false
+  return !segments.slice(index + 1).some((segment) => segment.type === 'message')
+}
 </script>
 
 <template>
@@ -567,8 +621,8 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
 
         <div v-else-if="messages.length === 0" class="agent-empty">
           <MessageSquareIcon :size="30" />
-          <h1>Agent</h1>
-          <p>Ask about a problem, a submission, or a piece of code.</p>
+          <h1>How can I help today?</h1>
+          <p>Start a conversation with TenJudge Agent.</p>
         </div>
 
         <template v-else>
@@ -578,19 +632,6 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
             class="agent-message"
             :class="[`agent-message--${message.role}`, message.failed && 'is-failed']"
           >
-            <div class="agent-message__meta">
-              <span>{{ message.role === 'user' ? 'You' : 'Agent' }}</span>
-              <button
-                v-if="message.role === 'user'"
-                class="agent-restart"
-                type="button"
-                @click="prepareRestart(message)"
-              >
-                <RotateCcwIcon :size="13" />
-                Restart from here
-              </button>
-            </div>
-
             <div v-if="message.attachments.length > 0" class="agent-attachments">
               <span
                 v-for="(attachment, index) in message.attachments"
@@ -604,7 +645,11 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
             <div class="agent-message__body">
               <template v-if="message.role === 'agent' && message.segments">
                 <template v-for="(segment, index) in renderMessageSegments(message.segments)" :key="`${message.id}-segment-${index}`">
-                  <div v-if="segment.type === 'progress'" class="agent-progress-line">
+                  <div
+                    v-if="segment.type === 'progress'"
+                    class="agent-progress-line"
+                    :class="{ 'agent-progress-line--active': isProgressSegmentActive(message, message.segments, index) }"
+                  >
                     <span v-for="(item, itemIndex) in segment.items" :key="`${item}-${itemIndex}`">
                       {{ item }}
                     </span>
@@ -620,16 +665,37 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
               <p v-else>{{ message.content }}</p>
               <span v-if="message.streaming" class="agent-cursor" aria-hidden="true" />
             </div>
+
+            <div v-if="!message.streaming" class="agent-message-actions">
+              <button type="button" aria-label="Copy message" title="Copy" @click="copyMessageText(message)">
+                <CopyIcon :size="14" />
+              </button>
+              <button
+                v-if="message.role === 'user'"
+                type="button"
+                aria-label="Edit message"
+                title="Edit"
+                :disabled="sending || streaming"
+                @click="editUserMessage(message)"
+              >
+                <PencilIcon :size="14" />
+              </button>
+              <button
+                v-else
+                type="button"
+                aria-label="Retry response"
+                title="Retry"
+                :disabled="sending || streaming"
+                @click="retryMessage(message)"
+              >
+                <RotateCcwIcon :size="14" />
+              </button>
+            </div>
           </article>
         </template>
       </div>
 
       <form class="agent-composer" @submit.prevent="handleSend">
-        <div v-if="restartTurnIndex !== null" class="agent-restart-banner">
-          <span>Editing from turn {{ restartTurnIndex }}. Sending will replace that turn and later messages.</span>
-          <button type="button" @click="cancelRestart">Cancel</button>
-        </div>
-
         <div v-if="pendingAttachments.length > 0" class="agent-pending">
           <span
             v-for="(attachment, index) in pendingAttachments"
@@ -674,7 +740,7 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
             v-model="input"
             class="agent-input"
             rows="1"
-            placeholder="Message Agent"
+            placeholder="Ask TenJudge Agent anything"
             :disabled="sending || streaming"
             @keydown="handleTextareaKeydown"
             @compositionstart="isComposing = true"
@@ -816,6 +882,22 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0 10px 16px;
+  scrollbar-color: #d7dde6 transparent;
+  scrollbar-width: thin;
+}
+
+.agent-conversations::-webkit-scrollbar {
+  width: 8px;
+}
+
+.agent-conversations::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.agent-conversations::-webkit-scrollbar-thumb {
+  border: 2px solid #f7f8fa;
+  border-radius: 999px;
+  background: #d7dde6;
 }
 
 .agent-conversation,
@@ -868,17 +950,18 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 28px max(24px, calc((100vw - 980px) / 2)) 18px;
+  padding: 28px max(24px, calc((100vw - 1060px) / 2)) 18px;
 }
 
 .agent-empty {
   display: grid;
-  min-height: 55vh;
+  min-height: 100%;
   place-items: center;
   align-content: center;
   gap: 8px;
   color: var(--color-text-subtle);
   text-align: center;
+  transform: translateY(-28px);
 }
 
 .agent-empty h1,
@@ -894,7 +977,7 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
 .agent-message {
   display: grid;
   gap: 8px;
-  max-width: 780px;
+  width: 100%;
   margin: 0 auto 26px;
 }
 
@@ -906,30 +989,34 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
   justify-items: start;
 }
 
-.agent-message__meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-text-subtle);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.agent-restart {
+.agent-message-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 6px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-surface);
+  gap: 2px;
+  margin-top: -2px;
+}
+
+.agent-message-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--color-text-muted);
-  font-size: 12px;
   cursor: pointer;
 }
 
-.agent-restart:hover {
+.agent-message-actions button:hover:not(:disabled) {
+  background: #f1f4f8;
   color: var(--color-text);
+}
+
+.agent-message-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .agent-attachments,
@@ -972,12 +1059,17 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
   line-height: 1.65;
 }
 
+.agent-message--agent .agent-message__body {
+  width: 100%;
+  max-width: 100%;
+}
+
 .agent-message--user .agent-message__body {
   max-width: min(100%, 640px);
   padding: 10px 13px;
-  border: 1px solid #d6dde8;
+  border: 0;
   border-radius: 12px;
-  background: #f5f7fb;
+  background: #f3f4f6;
 }
 
 .agent-message__body p {
@@ -1018,6 +1110,14 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
   font-size: 0.9em;
 }
 
+.agent-markdown :deep(:not(pre) > code) {
+  padding: 0.12em 0.34em;
+  border-radius: 4px;
+  background: #f1f2f4;
+  color: #24292f;
+  white-space: break-spaces;
+}
+
 .agent-progress-line {
   display: flex;
   flex-wrap: wrap;
@@ -1034,6 +1134,9 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
   height: 7px;
   border-radius: 999px;
   background: var(--color-focus);
+}
+
+.agent-progress-line--active::before {
   animation: agent-pulse 1s ease-in-out infinite;
 }
 
@@ -1056,29 +1159,8 @@ function renderMessageSegments(segments: AgentMessageSegment[] | undefined) {
 .agent-composer {
   display: grid;
   gap: 8px;
-  padding: 12px max(24px, calc((100vw - 980px) / 2)) 20px;
+  padding: 12px max(24px, calc((100vw - 1060px) / 2)) 20px;
   background: #ffffff;
-}
-
-.agent-restart-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid rgba(37, 99, 235, 0.25);
-  border-radius: var(--radius-sm);
-  background: rgba(37, 99, 235, 0.06);
-  color: var(--color-text);
-  font-size: 13px;
-}
-
-.agent-restart-banner button {
-  border: 0;
-  background: transparent;
-  color: var(--color-focus);
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .agent-composer__box {

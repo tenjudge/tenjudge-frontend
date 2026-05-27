@@ -95,6 +95,12 @@ function formatLanguageLabel(language: string): string {
   return LANGUAGE_LABELS[normalized] ?? normalized.toUpperCase()
 }
 
+const plainMarkdown = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true,
+})
+
 const markdown = new MarkdownIt({
   html: false,
   linkify: true,
@@ -183,15 +189,34 @@ const MATHML_ATTR = [
 // markdown-it emphasis/escape rules. Curly braces are safe literal text.
 const placeholderRe = /\{KTX(\d+)\}/g
 
-/**
- * Render $...$ and $$...$$ LaTeX math with KaTeX, replacing each formula
- * with a `{KTXn}` placeholder. The placeholder survives markdown-it and
- * DOMPurify unchanged, so we can swap the real KaTeX HTML back in last.
- */
 function renderMath(
   text: string,
   mathBlocks: string[],
 ): string {
+  // Block math: \[...\] — used by many LLMs
+  text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_full, math: string) => {
+    const id = mathBlocks.length
+    mathBlocks.push(
+      katex.renderToString(math.trim(), {
+        displayMode: true,
+        throwOnError: false,
+      }),
+    )
+    return `{KTX${id}}`
+  })
+
+  // Inline math: \(...\)
+  text = text.replace(/\\\(([^\n]*?)\\\)/g, (_full, math: string) => {
+    const id = mathBlocks.length
+    mathBlocks.push(
+      katex.renderToString(math, {
+        displayMode: false,
+        throwOnError: false,
+      }),
+    )
+    return `{KTX${id}}`
+  })
+
   // Block math: $$...$$
   text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_full, math: string) => {
     const id = mathBlocks.length
@@ -240,6 +265,31 @@ export function renderMarkdown(source: string): string {
   })
 
   // Swap KaTeX HTML back after sanitisation so it renders as real elements.
+  html = html.replace(placeholderRe, (_full, id: string) => {
+    return mathBlocks[Number(id)] ?? ''
+  })
+
+  return html
+}
+
+export function renderMarkdownPlain(source: string): string {
+  const mathBlocks: string[] = []
+
+  const parts = source.split(/(```[\s\S]*?```)/g)
+  const processed = parts
+    .map((part, i) => {
+      if (i % 2 === 1) return part
+      return renderMath(part, mathBlocks)
+    })
+    .join('')
+
+  let html = plainMarkdown.render(processed)
+
+  html = DOMPurify.sanitize(html, {
+    ADD_TAGS: MATHML_TAGS,
+    ADD_ATTR: [...MATHML_ATTR, 'class', 'type'],
+  })
+
   html = html.replace(placeholderRe, (_full, id: string) => {
     return mathBlocks[Number(id)] ?? ''
   })
