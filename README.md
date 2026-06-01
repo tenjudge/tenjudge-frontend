@@ -62,3 +62,4 @@ location /api/ {
 ```
 
 生产环境中前端默认使用 `VITE_API_BASE_URL=/api`，因此接口请求应由 Nginx 转发到后端。
+
